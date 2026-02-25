@@ -1,0 +1,120 @@
+# === ARCHIVOS DE ENTORNO ===
+.env
+.env.local
+.env.*.local
+*.env
+
+# Excepto templates
+!.env.example
+!lab/config/templates/*.env
+
+# === DATOS Y VOLUMENES ===
+# Datos de servicios
+services/*/data/*
+!services/*/data/.gitkeep
+
+# Datos de infraestructura
+infrastructure/*/data/*
+
+# === LOGS ===
+*.log
+logs/
+*.log.*
+lab/backups/logs/*
+
+# === BACKUPS ===
+*.sql
+*.sql.gz
+*.dump
+*.backup
+backups/*.tar.gz
+backups/*.zip
+lab/backups/cache/*
+restic-cache/
+
+# === SSL/CERTIFICADOS ===
+*.pem
+*.key
+*.crt
+*.csr
+infrastructure/ssl/*
+infrastructure/letsencrypt/acme.json
+!infrastructure/ssl/.gitkeep
+
+# === DOCKER ===
+# No ignorar docker-compose.yml, pero sí sobrescrituras locales
+docker-compose.override.yml
+.dockerignore
+
+# === TEMPORAL ===
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+*~
+.DS_Store
+
+# === IDE ===
+.vscode/
+.idea/
+*.sublime-*
+.project
+
+# === NODE (si se usa) ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# === PYTHON (si se usa) ===
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+ENV/
+
+# === CACHE ===
+.cache/
+*.cache
+cache/
+
+# === SECRETS ===
+secrets/
+*.secret
+credentials.json
+service-account.json
+
+# === RESTIC ===
+restic-repo/
+.restic/
+
+# === TESTING ===
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+test-results/
+
+# === BUILD ARTIFACTS ===
+dist/
+build/
+*.tar
+*.tar.gz
+
+# === OS ===
+Thumbs.db
+.DS_Store
+*.swp
+*.swo
+
+# === DOCUMENTACIÓN GENERADA ===
+docs/_build/
+site/
+
+# Mantener estructura de directorios
+!**/.gitkeep

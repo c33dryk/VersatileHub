@@ -1,0 +1,478 @@
+version: '3.8'
+
+# =============================================================================
+# VERSATILE HUB - Docker Compose Unificado
+# =============================================================================
+# Este archivo orquesta todos los servicios de Versatile Hub:
+# - Agent (OpenClaw) - Agente IA
+# - Chat (Chatwoot) - Plataforma de comunicación
+# - Hub (Frappe/ERPNext) - ERP Core
+# - Flow (Pendiente) - Automatización
+#
+# Redes:
+# - web: Exposición pública vía Traefik (externa, debe existir)
+# - shared: Comunicación inter-servicios
+# - *-internal: Redes privadas por servicio
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # AGENT SERVICE - OpenClaw AI Agent
+  # ===========================================================================
+  
+  agent:
+    image: ghcr.io/openclaw/openclaw:latest
+    container_name: versatile-agent
+    restart: unless-stopped
+    user: root
+    command: ["node", "dist/index.js", "gateway", "--allow-unconfigured", "--bind", "lan"]
+    expose:
+      - "3000"
+      - "18789"
+    environment:
+      # LLM APIs
+      - ANTHROPIC_API_KEY=${AGENT_ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${AGENT_OPENAI_API_KEY:-}
+      # Gateway
+      - OPENCLAW_GATEWAY_TOKEN=${AGENT_GATEWAY_TOKEN}
+      # Telegram
+      - TELEGRAM_BOT_TOKEN=${AGENT_TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_ALLOWED_USERS=${AGENT_TELEGRAM_ALLOWED_USERS:-}
+      # Configuración
+      - OPENCLAW_DATA_DIR=/data
+      - OPENCLAW_SKILLS_DIR=/skills
+      - OPENCLAW_CONFIG_FILE=/config/openclaw.json
+      - TZ=${TZ:-America/Argentina/Buenos_Aires}
+    volumes:
+      - ./services/agent/data/memory:/data
+      - ./services/agent/data/skills:/skills
+      - ./services/agent/data/openclaw:/root/.openclaw
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Acceso a workspaces de otros servicios
+      - ./services/hub:/workspace/hub:ro
+      - ./services/chat:/workspace/chat:ro
+      - ./lab:/workspace/lab:ro
+      - ./services/agent/config:/config
+    labels:
+      - "traefik.enable=true"
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.agent-http.rule=Host(`${AGENT_DOMAIN}`)"
+      - "traefik.http.routers.agent-http.entrypoints=web"
+      - "traefik.http.middlewares.agent-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.agent-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.agent-http.middlewares=agent-redirect"
+      # HTTPS
+      - "traefik.http.routers.agent.rule=Host(`${AGENT_DOMAIN}`)"
+      - "traefik.http.routers.agent.entrypoints=websecure"
+      - "traefik.http.routers.agent.tls=true"
+      - "traefik.http.routers.agent.tls.certresolver=${CERT_RESOLVER:-cloudflare}"
+      - "traefik.http.services.agent.loadbalancer.server.port=18789"
+      - "traefik.docker.network=web"
+    networks:
+      - web
+      - shared
+
+  # ===========================================================================
+  # CHAT SERVICE - Chatwoot Platform
+  # ===========================================================================
+
+  # --- Chatwoot Web (Rails App) ---
+  chat-web:
+    image: chatwoot/chatwoot:v4.8.0
+    container_name: versatile-chat-web
+    restart: unless-stopped
+    depends_on:
+      chat-postgres:
+        condition: service_healthy
+      chat-redis:
+        condition: service_healthy
+    expose:
+      - "3000"
+    environment:
+      - RAILS_ENV=production
+      - NODE_ENV=production
+      - INSTALLATION_ENV=docker
+      - RAILS_LOG_TO_STDOUT=true
+      - DATABASE_URL=postgresql://${CHAT_POSTGRES_USER}:${CHAT_POSTGRES_PASSWORD}@chat-postgres:5432/${CHAT_POSTGRES_DB}
+      - POSTGRES_HOST=chat-postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USERNAME=${CHAT_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${CHAT_POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=${CHAT_POSTGRES_DB}
+      - REDIS_URL=redis://chat-redis:6379
+      - SECRET_KEY_BASE=${CHAT_SECRET_KEY_BASE}
+      - FRONTEND_URL=https://${CHAT_DOMAIN}
+      - DEFAULT_LOCALE=${CHAT_DEFAULT_LOCALE:-es}
+      - FORCE_SSL=true
+      # Email
+      - MAILER_SENDER_EMAIL=${CHAT_MAILER_SENDER_EMAIL}
+      - SMTP_ADDRESS=${CHAT_SMTP_ADDRESS:-}
+      - SMTP_PORT=${CHAT_SMTP_PORT:-587}
+      - SMTP_USERNAME=${CHAT_SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${CHAT_SMTP_PASSWORD:-}
+      - SMTP_AUTHENTICATION=${CHAT_SMTP_AUTHENTICATION:-plain}
+      - SMTP_ENABLE_STARTTLS_AUTO=true
+      - ACTIVE_STORAGE_SERVICE=local
+      - TZ=${TZ:-America/Argentina/Buenos_Aires}
+    entrypoint: docker/entrypoints/rails.sh
+    command: ['bundle', 'exec', 'rails', 's', '-p', '3000', '-b', '0.0.0.0']
+    volumes:
+      - ./services/chat/data/storage:/app/storage
+      - ./services/chat/data/public:/app/public
+    labels:
+      - "traefik.enable=true"
+      # HTTP → HTTPS
+      - "traefik.http.routers.chat-http.rule=Host(`${CHAT_DOMAIN}`)"
+      - "traefik.http.routers.chat-http.entrypoints=web"
+      - "traefik.http.middlewares.chat-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.chat-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.chat-http.middlewares=chat-redirect"
+      # HTTPS
+      - "traefik.http.routers.chat.rule=Host(`${CHAT_DOMAIN}`)"
+      - "traefik.http.routers.chat.entrypoints=websecure"
+      - "traefik.http.routers.chat.tls=true"
+      - "traefik.http.routers.chat.tls.certresolver=${CERT_RESOLVER:-cloudflare}"
+      - "traefik.http.services.chat.loadbalancer.server.port=3000"
+      # Headers para WebSocket
+      - "traefik.http.middlewares.chat-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.chat.middlewares=chat-headers"
+      - "traefik.docker.network=web"
+    networks:
+      - web
+      - chat-internal
+
+  # --- Chatwoot Worker (Sidekiq) ---
+  chat-worker:
+    image: chatwoot/chatwoot:v4.8.0
+    container_name: versatile-chat-worker
+    restart: unless-stopped
+    depends_on:
+      chat-postgres:
+        condition: service_healthy
+      chat-redis:
+        condition: service_healthy
+    environment:
+      - RAILS_ENV=production
+      - NODE_ENV=production
+      - INSTALLATION_ENV=docker
+      - DATABASE_URL=postgresql://${CHAT_POSTGRES_USER}:${CHAT_POSTGRES_PASSWORD}@chat-postgres:5432/${CHAT_POSTGRES_DB}
+      - POSTGRES_HOST=chat-postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USERNAME=${CHAT_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${CHAT_POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=${CHAT_POSTGRES_DB}
+      - REDIS_URL=redis://chat-redis:6379
+      - SECRET_KEY_BASE=${CHAT_SECRET_KEY_BASE}
+      - FRONTEND_URL=https://${CHAT_DOMAIN}
+      - TZ=${TZ:-America/Argentina/Buenos_Aires}
+    command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
+    volumes:
+      - ./services/chat/data/storage:/app/storage
+    networks:
+      - chat-internal
+
+  # --- PostgreSQL for Chat ---
+  chat-postgres:
+    image: pgvector/pgvector:pg16
+    container_name: versatile-chat-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${CHAT_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${CHAT_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${CHAT_POSTGRES_DB}
+    volumes:
+      - ./services/chat/data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CHAT_POSTGRES_USER} -d ${CHAT_POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chat-internal
+
+  # --- Redis for Chat ---
+  chat-redis:
+    image: redis:7-alpine
+    container_name: versatile-chat-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - ./services/chat/data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chat-internal
+
+  # --- Chat Bridge (Agent Integration) ---
+  chat-bridge:
+    image: node:20-alpine
+    container_name: versatile-chat-bridge
+    restart: unless-stopped
+    working_dir: /app
+    command: sh -c "npm install ws 2>/dev/null && node chatwoot-agent-bridge.js"
+    environment:
+      - BRIDGE_PORT=4000
+      - CHATWOOT_URL=https://${CHAT_DOMAIN}
+      - CHATWOOT_API_ACCESS_TOKEN=${CHAT_API_ACCESS_TOKEN}
+      - CHATWOOT_ACCOUNT_ID=${CHAT_ACCOUNT_ID:-1}
+      - OPENCLAW_WS_URL=ws://agent:18789
+      - OPENCLAW_GATEWAY_TOKEN=${AGENT_GATEWAY_TOKEN}
+      - OPENCLAW_SESSION_KEY=chatwoot
+    volumes:
+      - ./services/chat/scripts:/app
+    expose:
+      - "4000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.chat-bridge.rule=Host(`${CHAT_BRIDGE_DOMAIN}`)"
+      - "traefik.http.routers.chat-bridge.entrypoints=websecure"
+      - "traefik.http.routers.chat-bridge.tls=true"
+      - "traefik.http.routers.chat-bridge.tls.certresolver=${CERT_RESOLVER:-cloudflare}"
+      - "traefik.http.services.chat-bridge.loadbalancer.server.port=4000"
+      - "traefik.docker.network=web"
+    networks:
+      - web
+      - chat-internal
+      - shared
+
+  # ===========================================================================
+  # HUB SERVICE - Frappe/ERPNext Core
+  # ===========================================================================
+
+  # --- MariaDB ---
+  hub-db:
+    image: mariadb:11.7
+    container_name: versatile-hub-db
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    environment:
+      - MYSQL_ROOT_PASSWORD=${HUB_DB_ROOT_PASSWORD}
+    volumes:
+      - ./services/hub/data/mariadb:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      retries: 30
+      start_period: 10s
+    networks:
+      - hub-internal
+
+  # --- Redis Cache ---
+  hub-redis-cache:
+    image: redis:7.4-alpine
+    container_name: versatile-hub-redis-cache
+    restart: unless-stopped
+    networks:
+      - hub-internal
+
+  # --- Redis Queue ---
+  hub-redis-queue:
+    image: redis:7.4-alpine
+    container_name: versatile-hub-redis-queue
+    restart: unless-stopped
+    networks:
+      - hub-internal
+
+  # --- Backend (Gunicorn) ---
+  hub-backend:
+    image: frappe/erpnext:v15
+    container_name: versatile-hub-backend
+    restart: unless-stopped
+    volumes:
+      - ./services/hub/data/sites:/home/frappe/frappe-bench/sites
+      - hub-assets:/home/frappe/frappe-bench/sites/assets
+    networks:
+      - hub-internal
+      - shared
+    depends_on:
+      hub-db:
+        condition: service_healthy
+
+  # --- Frontend (Nginx) ---
+  hub-frontend:
+    image: frappe/erpnext:v15
+    container_name: versatile-hub-frontend
+    restart: unless-stopped
+    command: ["nginx-entrypoint.sh"]
+    environment:
+      - BACKEND=hub-backend:8000
+      - SOCKETIO=hub-websocket:9000
+      - FRAPPE_SITE_NAME_HEADER=${HUB_SITE_NAME}
+    volumes:
+      - ./services/hub/data/sites:/home/frappe/frappe-bench/sites
+      - hub-assets:/home/frappe/frappe-bench/sites/assets
+    labels:
+      - "traefik.enable=true"
+      # HTTP → HTTPS
+      - "traefik.http.routers.hub-http.rule=Host(`${HUB_DOMAIN}`)"
+      - "traefik.http.routers.hub-http.entrypoints=web"
+      - "traefik.http.middlewares.hub-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.hub-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.hub-http.middlewares=hub-redirect"
+      # HTTPS
+      - "traefik.http.routers.hub.rule=Host(`${HUB_DOMAIN}`)"
+      - "traefik.http.routers.hub.entrypoints=websecure"
+      - "traefik.http.routers.hub.tls=true"
+      - "traefik.http.routers.hub.tls.certresolver=${CERT_RESOLVER:-cloudflare}"
+      - "traefik.http.services.hub.loadbalancer.server.port=8080"
+      - "traefik.docker.network=web"
+    networks:
+      - web
+      - hub-internal
+    depends_on:
+      - hub-backend
+      - hub-websocket
+
+  # --- WebSocket (SocketIO) ---
+  hub-websocket:
+    image: frappe/erpnext:v15
+    container_name: versatile-hub-websocket
+    restart: unless-stopped
+    command: ["node", "/home/frappe/frappe-bench/apps/frappe/socketio.js"]
+    volumes:
+      - ./services/hub/data/sites:/home/frappe/frappe-bench/sites
+      - hub-assets:/home/frappe/frappe-bench/sites/assets
+    networks:
+      - hub-internal
+
+  # --- Worker (Background Jobs) ---
+  hub-worker:
+    image: frappe/erpnext:v15
+    container_name: versatile-hub-worker
+    restart: unless-stopped
+    user: frappe
+    command: ["bench", "worker", "--queue", "long,short,default"]
+    volumes:
+      - ./services/hub/data/sites:/home/frappe/frappe-bench/sites
+      - hub-assets:/home/frappe/frappe-bench/sites/assets
+    networks:
+      - hub-internal
+
+  # --- Scheduler (Cron Jobs) ---
+  hub-scheduler:
+    image: frappe/erpnext:v15
+    container_name: versatile-hub-scheduler
+    restart: unless-stopped
+    user: frappe
+    command: ["bench", "schedule"]
+    volumes:
+      - ./services/hub/data/sites:/home/frappe/frappe-bench/sites
+      - hub-assets:/home/frappe/frappe-bench/sites/assets
+    networks:
+      - hub-internal
+
+  # ===========================================================================
+  # FLOW SERVICE - n8n Automation
+  # ===========================================================================
+  
+  flow:
+    image: n8nio/n8n:latest
+    container_name: versatile-flow
+    restart: unless-stopped
+    expose:
+      - "5678"
+    environment:
+      # Basic Configuration
+      - N8N_HOST=${FLOW_DOMAIN}
+      - N8N_PORT=${FLOW_N8N_PORT:-5678}
+      - NODE_ENV=${FLOW_NODE_ENV:-production}
+      - GENERIC_TIMEZONE=${TZ:-America/Argentina/Buenos_Aires}
+      
+      # Security
+      - N8N_BASIC_AUTH_ACTIVE=${FLOW_N8N_BASIC_AUTH_ACTIVE:-false}
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=${FLOW_N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS:-true}
+      - N8N_SECURE_COOKIE=${FLOW_N8N_SECURE_COOKIE:-true}
+      
+      # URLs & Webhooks
+      - N8N_PROTOCOL=${FLOW_N8N_PROTOCOL:-https}
+      - N8N_LISTEN_ADDRESS=${FLOW_N8N_LISTEN_ADDRESS:-0.0.0.0}
+      - N8N_EDITOR_BASE_URL=https://${FLOW_DOMAIN}/
+      - N8N_WEBHOOK_URL=https://${FLOW_DOMAIN}/
+      - N8N_WEBHOOK_TUNNEL_URL=https://${FLOW_DOMAIN}/
+      - WEBHOOK_URL=https://${FLOW_DOMAIN}/
+      - WEBHOOK_TUNNEL_URL=https://${FLOW_DOMAIN}/
+      - N8N_EXTERNAL_FRONTEND_HOOKS_URLS=https://${FLOW_DOMAIN}/
+      - N8N_EXTERNAL_WEBHOOK_URL=https://${FLOW_DOMAIN}/
+      - N8N_WEBHOOK_TEST_URL=https://${FLOW_DOMAIN}/
+      
+      # Proxy & Path
+      - N8N_PROXY_HOPS=${FLOW_N8N_PROXY_HOPS:-1}
+      - N8N_PATH=${FLOW_N8N_PATH:-/}
+      
+      # Additional Settings
+      - DB_SQLITE_POOL_SIZE=${FLOW_DB_SQLITE_POOL_SIZE:-5}
+      - N8N_RUNNERS_ENABLED=${FLOW_N8N_RUNNERS_ENABLED:-true}
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=${FLOW_N8N_BLOCK_ENV_ACCESS_IN_NODE:-false}
+      - N8N_GIT_NODE_DISABLE_BARE_REPOS=${FLOW_N8N_GIT_NODE_DISABLE_BARE_REPOS:-true}
+      
+      # Timezone
+      - TZ=${TZ:-America/Argentina/Buenos_Aires}
+    
+    volumes:
+      - ./services/flow/data:/home/node/.n8n
+      - ./services/flow/config:/config
+    
+    labels:
+      - "traefik.enable=true"
+      
+      # HTTP → HTTPS
+      - "traefik.http.routers.flow-http.rule=Host(`${FLOW_DOMAIN}`)"
+      - "traefik.http.routers.flow-http.entrypoints=web"
+      - "traefik.http.middlewares.flow-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.flow-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.flow-http.middlewares=flow-redirect"
+      
+      # HTTPS
+      - "traefik.http.routers.flow.rule=Host(`${FLOW_DOMAIN}`)"
+      - "traefik.http.routers.flow.entrypoints=websecure"
+      - "traefik.http.routers.flow.tls=true"
+      - "traefik.http.routers.flow.tls.certresolver=${CERT_RESOLVER:-cloudflare}"
+      - "traefik.http.services.flow.loadbalancer.server.port=5678"
+      - "traefik.docker.network=web"
+    
+    networks:
+      - web
+      - shared
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  # Red externa para Traefik (debe existir previamente)
+  web:
+    external: true
+  
+  # Red compartida para comunicación inter-servicios
+  shared:
+    driver: bridge
+    name: versatile-shared
+  
+  # Redes internas por servicio (aisladas)
+  chat-internal:
+    driver: bridge
+    name: versatile-chat-internal
+  
+  hub-internal:
+    driver: bridge
+    name: versatile-hub-internal
+    driver_opts:
+      com.docker.network.bridge.name: br-hub
+    ipam:
+      config:
+        - subnet: 172.31.0.0/16
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  # Hub assets (compartidos entre varios contenedores)
+  hub-assets:
+    driver: local
+    name: versatile-hub-assets

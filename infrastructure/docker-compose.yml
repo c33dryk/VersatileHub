@@ -1,0 +1,152 @@
+version: '3.8'
+
+# =============================================================================
+# VERSATILE HUB - INFRASTRUCTURE
+# =============================================================================
+# Gestión centralizada de toda la infraestructura:
+# - Traefik: Reverse Proxy & SSL
+# - Portainer: Docker Management UI
+# - Nginx: Static file server (opcional)
+#
+# Despliegue:
+#   cd infrastructure
+#   docker compose up -d
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # TRAEFIK - Reverse Proxy & SSL Automation
+  # ===========================================================================
+  traefik:
+    image: traefik:v2.11
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      # API
+      - --api.dashboard=true
+      - --api.insecure=false
+      
+      # Providers
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=web
+      
+      # Entrypoints
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      
+      # HTTP -> HTTPS redirect (global)
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+      
+      # SSL/TLS - Cloudflare DNS Challenge
+      - --certificatesresolvers.cloudflare.acme.email=${ACME_EMAIL:-admin@graficadosd.ar}
+      - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.cloudflare.acme.dnschallenge=true
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
+      
+      # Let's Encrypt HTTP Challenge (alternativo)
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@graficadosd.ar}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme-http.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      
+      # Logs
+      - --log.level=INFO
+      - --accesslog=true
+    
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Dashboard
+    
+    environment:
+      # Cloudflare API (método Global API Key)
+      - CF_API_EMAIL=${CLOUDFLARE_EMAIL}
+      - CF_API_KEY=${CLOUDFLARE_API_KEY}
+    
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+      - ./traefik/config:/etc/traefik/config:ro
+      - ./ssl:/ssl:ro
+    
+    labels:
+      - "traefik.enable=true"
+      
+      # Dashboard
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${BASE_DOMAIN:-graficadosd.ar}`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.tls=true"
+      - "traefik.http.routers.traefik-dashboard.tls.certresolver=cloudflare"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      
+      # Basic Auth para Dashboard (usuario: admin, password: admin - CAMBIAR!)
+      # Generar con: htpasswd -nb admin tu_password o echo "user:$(openssl passwd -apr1 password)"
+      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$apr1$$B9PIhbOh$$x9HIG.HpM9ffOYOgOCHLO."
+    
+    networks:
+      - web
+
+  # ===========================================================================
+  # PORTAINER - Docker Management UI
+  # ===========================================================================
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    command: -H unix:///var/run/docker.sock
+    
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/portainer:/data
+    
+    labels:
+      - "traefik.enable=true"
+      
+      # HTTPS
+      - "traefik.http.routers.portainer.rule=Host(`portainer.${BASE_DOMAIN:-graficadosd.ar}`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.routers.portainer.tls.certresolver=cloudflare"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      - "traefik.docker.network=web"
+    
+    networks:
+      - web
+    
+    depends_on:
+      - traefik
+
+  # ===========================================================================
+  # NGINX - Static File Server (Opcional)
+  # ===========================================================================
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: nginx-static
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./nginx/www:/usr/share/nginx/html:ro
+  #     - ./nginx/conf.d:/etc/nginx/conf.d:ro
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.nginx.rule=Host(`static.${BASE_DOMAIN}`)"
+  #     - "traefik.http.routers.nginx.entrypoints=websecure"
+  #     - "traefik.http.routers.nginx.tls=true"
+  #     - "traefik.http.routers.nginx.tls.certresolver=cloudflare"
+  #     - "traefik.http.services.nginx.loadbalancer.server.port=80"
+  #   networks:
+  #     - web
+  #   depends_on:
+  #     - traefik
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  web:
+    external: true
+    name: web
