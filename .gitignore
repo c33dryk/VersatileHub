@@ -3,9 +3,12 @@
 .env.local
 .env.*.local
 *.env
+**/.env
+**/infrastructure/.env
 
 # Excepto templates
 !.env.example
+!**/.env.example
 !lab/config/templates/*.env
 
 # === DATOS Y VOLUMENES ===
@@ -17,6 +20,10 @@ services/*/data/*
 infrastructure/*/data/*
 infrastructure/data/**
 infrastructure/letsencrypt/*.json
+
+# Portainer data
+infrastructure/data/portainer/**
+!infrastructure/data/portainer/.gitkeep
 
 # === LOGS ===
 *.log
@@ -41,6 +48,12 @@ restic-cache/
 *.csr
 infrastructure/ssl/*
 infrastructure/letsencrypt/acme.json
+infrastructure/letsencrypt/acme-*.json
+infrastructure/data/letsencrypt/*.json
+infrastructure/data/portainer/certs/**
+infrastructure/data/portainer/chisel/**
+infrastructure/data/portainer/*.key
+infrastructure/data/portainer/*.pem
 !infrastructure/ssl/.gitkeep
 
 # === DOCKER ===
@@ -90,6 +103,12 @@ secrets/
 *.secret
 credentials.json
 service-account.json
+**/docker_config/config.json
+infrastructure/data/portainer/docker_config/**
+*password*
+*secret*
+!**/scripts/*
+!**/*.md
 
 # === RESTIC ===
 restic-repo/
