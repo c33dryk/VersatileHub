@@ -497,6 +497,136 @@ services:
       - altamira-internal
 
   # ===========================================================================
+  # FEADAR SERVICE - Frappe/ERPNext (Cliente Specific)
+  # ===========================================================================
+
+  # --- MariaDB ---
+  feadar-db:
+    image: mariadb:11.7
+    container_name: versatile-feadar-db
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    environment:
+      - MYSQL_ROOT_PASSWORD=${FEADAR_DB_ROOT_PASSWORD}
+    volumes:
+      - ./services/feadar/data/mariadb:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      retries: 30
+      start_period: 10s
+    networks:
+      - feadar-internal
+
+  # --- Redis Cache ---
+  feadar-redis-cache:
+    image: redis:7.4-alpine
+    container_name: versatile-feadar-redis-cache
+    restart: unless-stopped
+    networks:
+      - feadar-internal
+
+  # --- Redis Queue ---
+  feadar-redis-queue:
+    image: redis:7.4-alpine
+    container_name: versatile-feadar-redis-queue
+    restart: unless-stopped
+    networks:
+      - feadar-internal
+
+  # --- Backend (Gunicorn) ---
+  feadar-backend:
+    image: frappe/erpnext:v15
+    container_name: versatile-feadar-backend
+    restart: unless-stopped
+    volumes:
+      - ./services/feadar/data/sites:/home/frappe/frappe-bench/sites
+      - feadar-assets:/home/frappe/frappe-bench/sites/assets
+    networks:
+      - feadar-internal
+      - shared
+    depends_on:
+      feadar-db:
+        condition: service_healthy
+
+  # --- Frontend (Nginx) ---
+  feadar-frontend:
+    image: frappe/erpnext:v15
+    container_name: versatile-feadar-frontend
+    restart: unless-stopped
+    command: ["nginx-entrypoint.sh"]
+    environment:
+      - BACKEND=feadar-backend:8000
+      - SOCKETIO=feadar-websocket:9000
+      - FRAPPE_SITE_NAME_HEADER=${FEADAR_SITE_NAME}
+    volumes:
+      - ./services/feadar/data/sites:/home/frappe/frappe-bench/sites
+      - feadar-assets:/home/frappe/frappe-bench/sites/assets
+    labels:
+      - "traefik.enable=true"
+      # HTTP → HTTPS
+      - "traefik.http.routers.feadar-http.rule=Host(`${FEADAR_DOMAIN}`)"
+      - "traefik.http.routers.feadar-http.entrypoints=web"
+      - "traefik.http.middlewares.feadar-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.feadar-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.feadar-http.middlewares=feadar-redirect"
+      # HTTPS
+      - "traefik.http.routers.feadar.rule=Host(`${FEADAR_DOMAIN}`)"
+      - "traefik.http.routers.feadar.entrypoints=websecure"
+      - "traefik.http.routers.feadar.tls=true"
+      - "traefik.http.routers.feadar.tls.certresolver=${CERT_RESOLVER:-cloudflare}"
+      - "traefik.http.services.feadar.loadbalancer.server.port=8080"
+      - "traefik.docker.network=web"
+    networks:
+      - web
+      - feadar-internal
+    depends_on:
+      - feadar-backend
+      - feadar-websocket
+
+  # --- WebSocket (SocketIO) ---
+  feadar-websocket:
+    image: frappe/erpnext:v15
+    container_name: versatile-feadar-websocket
+    restart: unless-stopped
+    command: ["node", "/home/frappe/frappe-bench/apps/frappe/socketio.js"]
+    volumes:
+      - ./services/feadar/data/sites:/home/frappe/frappe-bench/sites
+      - feadar-assets:/home/frappe/frappe-bench/sites/assets
+    networks:
+      - feadar-internal
+
+  # --- Worker (Background Jobs) ---
+  feadar-worker:
+    image: frappe/erpnext:v15
+    container_name: versatile-feadar-worker
+    restart: unless-stopped
+    user: frappe
+    command: ["bench", "worker", "--queue", "long,short,default"]
+    volumes:
+      - ./services/feadar/data/sites:/home/frappe/frappe-bench/sites
+      - feadar-assets:/home/frappe/frappe-bench/sites/assets
+    networks:
+      - feadar-internal
+
+  # --- Scheduler (Cron Jobs) ---
+  feadar-scheduler:
+    image: frappe/erpnext:v15
+    container_name: versatile-feadar-scheduler
+    restart: unless-stopped
+    user: frappe
+    command: ["bench", "schedule"]
+    volumes:
+      - ./services/feadar/data/sites:/home/frappe/frappe-bench/sites
+      - feadar-assets:/home/frappe/frappe-bench/sites/assets
+    networks:
+      - feadar-internal
+
+  # ===========================================================================
   # FLOW SERVICE - n8n Automation
   # ===========================================================================
   
@@ -605,6 +735,15 @@ networks:
       config:
         - subnet: 172.32.0.0/16
 
+  feadar-internal:
+    driver: bridge
+    name: versatile-feadar-internal
+    driver_opts:
+      com.docker.network.bridge.name: br-feadar
+    ipam:
+      config:
+        - subnet: 172.33.0.0/16
+
 # =============================================================================
 # VOLUMES
 # =============================================================================
@@ -618,3 +757,8 @@ volumes:
   altamira-assets:
     driver: local
     name: versatile-altamira-assets
+
+  # Feadar assets (compartidos entre varios contenedores)
+  feadar-assets:
+    driver: local
+    name: versatile-feadar-assets
