@@ -60,7 +60,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"  # Dashboard
+      - "127.0.0.1:8080:8080"  # Dashboard (solo localhost)
     
     environment:
       # Cloudflare API (método Global API Key)
@@ -73,20 +73,11 @@ services:
       - ./traefik/config:/etc/traefik/config:ro
       - ./ssl:/ssl:ro
     
+    # Dashboard NO expuesto públicamente (acceso solo vía SSH tunnel)
+    # Acceso: ssh -L 8080:localhost:8080 user@server
+    # Luego abrir: http://localhost:8080
     labels:
-      - "traefik.enable=true"
-      
-      # Dashboard
-      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${BASE_DOMAIN:-graficadosd.ar}`)"
-      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
-      - "traefik.http.routers.traefik-dashboard.tls=true"
-      - "traefik.http.routers.traefik-dashboard.tls.certresolver=cloudflare"
-      - "traefik.http.routers.traefik-dashboard.service=api@internal"
-      
-      # Basic Auth para Dashboard (usuario: admin, password: admin - CAMBIAR!)
-      # Generar con: htpasswd -nb admin tu_password o echo "user:$(openssl passwd -apr1 password)"
-      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
-      - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$apr1$$B9PIhbOh$$x9HIG.HpM9ffOYOgOCHLO."
+      - "traefik.enable=false"
     
     networks:
       - web
@@ -100,20 +91,18 @@ services:
     restart: unless-stopped
     command: -H unix:///var/run/docker.sock
     
+    ports:
+      - "127.0.0.1:9000:9000"  # UI (solo localhost)
+    
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./data/portainer:/data
     
+    # Portainer NO expuesto públicamente (acceso solo vía SSH tunnel)
+    # Acceso: ssh -L 9000:localhost:9000 user@server
+    # Luego abrir: http://localhost:9000
     labels:
-      - "traefik.enable=true"
-      
-      # HTTPS
-      - "traefik.http.routers.portainer.rule=Host(`portainer.${BASE_DOMAIN:-graficadosd.ar}`)"
-      - "traefik.http.routers.portainer.entrypoints=websecure"
-      - "traefik.http.routers.portainer.tls=true"
-      - "traefik.http.routers.portainer.tls.certresolver=cloudflare"
-      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
-      - "traefik.docker.network=web"
+      - "traefik.enable=false"
     
     networks:
       - web

@@ -96,14 +96,14 @@ docker compose logs -f hub-frontend
 ```bash
 # Crear sitio nuevo
 docker exec -it versatile-hub-backend \
-  bench new-site lab.versatilehub.app \
+  bench new-site altamira.versatilehub.app \
   --mariadb-root-password YOUR_DB_PASSWORD \
   --admin-password YOUR_ADMIN_PASSWORD \
   --install-app erpnext
 
 # Establecer como sitio por defecto
 docker exec -it versatile-hub-backend \
-  bench use lab.versatilehub.app
+  bench use altamira.versatilehub.app
 ```
 
 #### Chat (Chatwoot)
@@ -148,7 +148,8 @@ El archivo `.env` en la raíz contiene toda la configuración necesaria:
 # Dominios
 AGENT_DOMAIN=agent.versatilehub.app
 CHAT_DOMAIN=chat.versatilehub.app
-HUB_DOMAIN=lab.versatilehub.app
+HUB_DOMAIN=altamira.versatilehub.app
+FLOW_DOMAIN=flow.versatilehub.app
 
 # Credenciales (cambiar en producción)
 AGENT_ANTHROPIC_API_KEY=sk-ant-...

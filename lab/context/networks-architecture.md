@@ -206,7 +206,8 @@ Cliente HTTPS → Traefik → [web] → Servicio
 - `agent.versatilehub.app` → agent:18789
 - `chat.versatilehub.app` → chat-web:3000
 - `chat-bridge.versatilehub.app` → chat-bridge:4000
-- `lab.versatilehub.app` → hub-frontend:8080
+- `altamira.versatilehub.app` → hub-frontend:8080
+- `flow.versatilehub.app` → flow:5678 (cuando se implemente)
 
 ### 2. Servicio → Servicio (misma red interna)
 

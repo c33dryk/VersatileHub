@@ -251,7 +251,7 @@ hub-db (MariaDB) + hub-redis-cache + hub-redis-queue
 - Queue: Cola de trabajos
 
 ### Exposición
-- ✅ **Público** vía `lab.versatilehub.app` (Frontend)
+- ✅ **Público** vía `altamira.versatilehub.app` (Frontend)
 - ❌ Backend, WebSocket, Worker, Scheduler, DB: Internos
 
 ### Funcionalidades ERP
@@ -267,7 +267,7 @@ hub-db (MariaDB) + hub-redis-cache + hub-redis-queue
 
 ### Variables de Entorno Requeridas
 ```bash
-FRAPPE_SITE_NAME              # lab.versatilehub.app
+FRAPPE_SITE_NAME              # altamira.versatilehub.app
 FRAPPE_DB_ROOT_PASSWORD       # Password MariaDB
 ```
 
