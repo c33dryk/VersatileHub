@@ -121,17 +121,24 @@ nano .env
 ./lab/scripts/logs.sh
 ```
 
-### Para Migración
+### Para Despliegue
 
 ```bash
-# 1. Ver guía de migración
-cat lab/spec/migration-guide.md
+# 1. Configurar variables de entorno
+cp .env.example .env
+nano .env
 
-# 2. Ejecutar script de migración
-./lab/scripts/migrate-from-old-structure.sh
+# 2. Verificar infraestructura base (Traefik, red 'web')
+docker network create web
 
-# 3. Validar
-./lab/scripts/validate-migration.sh
+# 3. Desplegar suite completa
+docker compose up -d
+
+# 4. Ver estado
+docker compose ps
+
+# 5. Setup inicial de servicios
+# Ver: lab/context/deployment-context.md
 ```
 
 ---
@@ -195,55 +202,78 @@ cat lab/spec/migration-guide.md
 └── restic/
 ```
 
-**Problemas:**
+**Problemas anteriores:**
 - ❌ Mezcla de dev y prod
 - ❌ Nombres inconsistentes
 - ❌ Documentación dispersa
-- ❌ Difícil de migrar
+- ❌ Difícil de replicar
 
 ### Ahora (Versatile Hub)
 
 ```
-/opt/ats/Versatile Hub/
-├── lab/
-├── infrastructure/
-└── services/
+/opt/ATS/VersatileHub/
+├── lab/              # Documentación y contratos
+├── infrastructure/   # Infraestructura compartida
+└── services/         # Microservicios independientes
 ```
 
 **Beneficios:**
 - ✅ Estructura unificada
 - ✅ Nombres consistentes
-- ✅ Documentación centralizada
-- ✅ Fácil de migrar/replicar
+- ✅ Documentación centralizada (lab/)
+- ✅ Contratos de desarrollo integrados (lab/spec/)
+- ✅ Fácil de desplegar y replicar
 
 ---
 
-## 🔄 Proceso de Migración
+## 🚀 Modelo de Despliegue
 
-### Origen → Destino
+### Despliegue Desde Cero
 
-| Origen | Destino | Estado |
-|--------|---------|--------|
-| `Dev/servicios/ats-agent/` | `services/agent/` | ⏳ Pendiente |
-| `Dev/servicios/ats-chat/` | `services/chat/` | ⏳ Pendiente |
-| `Dev/servicios/versatile-hub/` | `services/hub/` | ⏳ Pendiente |
-| `Production/servicios/versatile-flow/` | `services/flow/` | ⏳ Pendiente |
-| `Production/infraestructura/` | `infrastructure/` | ⏳ Pendiente |
-| `restic/` | `lab/backups/` | ⏳ Pendiente |
+VersatileHub se despliega como **infraestructura nueva**, no requiere migración:
+
+```bash
+# 1. Preparar servidor
+docker network create web
+
+# 2. Configurar
+cp .env.example .env
+nano .env
+
+# 3. Desplegar
+docker compose up -d
+
+# 4. Setup inicial
+# Hub: crear sitio Frappe
+# Chat: configurar admin e inbox
+# Agent: verificar conectividad
+```
+
+### Convivencia con Infraestructura Existente
+
+VersatileHub puede compartir Traefik con otros servicios:
+
+| Compartido | Uso |
+|------------|-----|
+| Red `web` | ✅ Compartida con Traefik |
+| Traefik | ✅ Puede usar el de /opt/ATS/Production |
+| Restic | ✅ Integra con /opt/ATS/restic/ |
+| Otros servicios | ❌ Independientes |
 
 ---
 
-## 📈 Siguiente Fase
+## 📈 Siguientes Fases
 
-Ver: [lab/CURRENT_STATUS.md](./lab/CURRENT_STATUS.md) para próximos pasos detallados.
+Ver: [lab/CURRENT_STATUS.md](./lab/CURRENT_STATUS.md) para detalles completos.
 
-**Resumen de próximos pasos:**
-1. ⏳ Crear archivos de configuración (.env, templates)
-2. ⏳ Migrar configuración de infraestructura
-3. ⏳ Migrar servicios uno por uno
-4. ⏳ Crear scripts de automatización
-5. ⏳ Testing completo
-6. ⏳ Despliegue en producción
+**Resumen:**
+1. ✅ Estructura base creada
+2. ✅ Documentación completa
+3. ⏳ Despliegue inicial en entorno de prueba
+4. ⏳ Configuración de contratos de desarrollo
+5. ⏳ Implementación de features por contrato
+6. ⏳ Testing y validación
+7. ⏳ Despliegue en producción para clientes
 
 ---
 

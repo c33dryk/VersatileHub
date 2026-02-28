@@ -79,7 +79,7 @@
    - ✅ Variables de entorno por servicio
 
 2. **Docker Compose principal**
-   - ✅ `docker-compose.yml` en raíz
+   - ✅ `docker-compose.yml` unificado en raíz
    - ✅ Definición de redes (web, shared, *-internal)
    - ✅ Definición de volúmenes
    - ✅ Labels de Traefik configurados
@@ -87,66 +87,82 @@
 3. **Documentación técnica**
    - ✅ `lab/context/services-overview.md`
    - ✅ `lab/context/networks-architecture.md`
+   - ✅ `lab/context/deployment-context.md`
+   - ✅ `lab/spec/contracts-workflow.md`
 
-### Fase 2: Migración de Servicios (Prioridad Alta)
+### Fase 2: Despliegue Inicial (Próximo Paso)
 
-4. **Migrar Hub Service**
-   - [ ] Copiar configuración desde `/opt/ats/Dev/servicios/versatile-hub/`
-   - [ ] Adaptar `docker-compose.yml`
-   - [ ] Migrar datos existentes
-   - [ ] Probar funcionamiento
+4. **Verificar Infraestructura Base**
+   - [ ] Verificar Traefik corriendo (desde /opt/ATS/Production o instalación nueva)
+   - [ ] Validar red `web` existe
+   - [ ] Confirmar acceso a DNS y dominios
 
-5. **Migrar Agent Service**
-   - [ ] Copiar desde `/opt/ats/Dev/servicios/ats-agent/`
-   - [ ] Adaptar configuración
-   - [ ] Integrar con red Docker
+5. **Configurar Variables de Entorno**
+   - [ ] Copiar `.env.example` a `.env` en raíz
+   - [ ] Configurar dominios del cliente
+   - [ ] Configurar API keys y credenciales
+   - [ ] Generar secrets con openssl
 
-6. **Migrar Chat Service**
-   - [ ] Copiar desde `/opt/ats/Dev/servicios/ats-chat/`
-   - [ ] Configurar WebSocket
-   - [ ] Integrar autenticación
+6. **Levantar Suite Completa**
+   - [ ] Ejecutar `docker compose up -d` desde raíz
+   - [ ] Verificar todos los servicios levantados
+   - [ ] Revisar logs con `docker compose logs -f`
 
-7. **Migrar Flow Service**
-   - [ ] Copiar desde `/opt/ats/Production/servicios/versatile-flow/`
-   - [ ] Adaptar para nueva estructura
-   - [ ] Configurar permisos
+7. **Setup Inicial Post-Despliegue**
+   - [ ] Hub: Crear sitio Frappe inicial
+   - [ ] Chat: Configurar cuenta admin y primer inbox
+   - [ ] Agent: Verificar conectividad WebSocket
+   - [ ] Configurar integraciones entre servicios
+
+8. **Configurar Backups**
+   - [ ] Integrar con sistema Restic existente
+   - [ ] Configurar cron jobs
+   - [ ] Ejecutar primer backup de prueba
 
 ### Fase 3: Scripts y Automatización (Prioridad Media)
 
-8. **Scripts de despliegue**
-   - [ ] `lab/scripts/deploy.sh`
-   - [ ] `lab/scripts/setup.sh`
-   - [ ] `lab/scripts/rollback.sh`
+9. **Scripts de despliegue**
+   - [ ] `lab/scripts/deploy.sh` - Despliegue completo
+   - [ ] `lab/scripts/setup.sh` - Setup inicial
+   - [ ] `lab/scripts/rollback.sh` - Rollback rápido
 
-9. **Scripts de backups**
-   - [ ] Migrar configuración de `/opt/ats/restic/`
-   - [ ] `lab/backups/scripts/backup.sh`
-   - [ ] `lab/backups/scripts/restore.sh`
+10. **Scripts de backups**
+   - [ ] Integrar con `/opt/ATS/restic/` existente
+   - [ ] `lab/backups/scripts/backup.sh` - Backup específico VersatileHub
+   - [ ] `lab/backups/scripts/restore.sh` - Restauración
    - [ ] Configurar cron jobs
 
-10. **Scripts de mantenimiento**
-    - [ ] `lab/scripts/cleanup.sh`
-    - [ ] `lab/scripts/update.sh`
-    - [ ] `lab/scripts/health-check.sh`
+11. **Scripts de mantenimiento**
+    - [ ] `lab/scripts/cleanup.sh` - Limpieza de logs y cache
+    - [ ] `lab/scripts/update.sh` - Actualización de servicios
+    - [ ] `lab/scripts/health-check.sh` - Verificación de salud
 
-### Fase 4: Documentación (Prioridad Media)
+### Fase 4: Gestión de Contratos de Desarrollo (✅ ESTRUCTURA LISTA)
 
-11. **Especificaciones detalladas**
-    - [ ] `lab/spec/agent-spec.md`
-    - [ ] `lab/spec/chat-spec.md`
-    - [ ] `lab/spec/flow-spec.md`
-    - [ ] `lab/spec/hub-spec.md`
-    - [ ] `lab/spec/infrastructure-spec.md`
+12. **Sistema de Contratos** (✅ Documentado)
+    - ✅ `lab/spec/contracts-workflow.md` - Proceso completo documentado
+    - ✅ `lab/spec/requirements/` - Requerimientos de clientes
+    - ✅ `lab/spec/analysis/` - Análisis técnicos
+    - ✅ `lab/spec/contracts/` - Contratos formalizados
 
-12. **Guías de operación**
-    - [ ] `lab/spec/deployment-guide.md`
-    - [ ] `lab/spec/migration-guide.md`
-    - [ ] `lab/spec/disaster-recovery.md`
+13. **Especificaciones Técnicas por Servicio** (Por crear según contratos)
+    - [ ] `lab/spec/agent-spec.md` - Features de Agent por contrato
+    - [ ] `lab/spec/chat-spec.md` - Features de Chat por contrato
+    - [ ] `lab/spec/flow-spec.md` - Features de Flow por contrato
+    - [ ] `lab/spec/hub-spec.md` - Features de Hub por contrato
 
-13. **Documentación de contexto**
-    - [ ] `lab/context/migration-context.md`
-    - [ ] `lab/context/tech-stack.md`
-    - [ ] ADRs importantes
+14. **Workflow de Contratos**
+    ```
+    Cliente solicita → REQ-YYYY-MM-NNN.md
+                     ↓
+    Análisis técnico → ANA-YYYY-MM-NNN.md
+                     ↓
+    Contrato aprobado → CONT-YYYY-MM-NNN.md
+                     ↓
+    Desarrollo → Spec de servicio actualizado
+                     ↓
+    Deploy → Cliente valida → Facturación
+    ```
 
 ### Fase 5: Testing y Validación (Prioridad Alta)
 
@@ -220,35 +236,48 @@ services/chat/docker-compose.yml
 services/flow/docker-compose.yml
 ```
 
-## 🔗 Referencias de Migración
+## 🏗️ Modelo de Despliegue
 
-### Directorios origen
+### Despliegue Desde Cero (No-Migración)
+
+VersatileHub se despliega como **infraestructura nueva**:
 
 ```bash
-# Servicios de desarrollo
-/opt/ats/Dev/servicios/ats-agent/      → services/agent/
-/opt/ats/Dev/servicios/ats-chat/       → services/chat/
-/opt/ats/Dev/servicios/versatile-hub/  → services/hub/
+# 1. Docker Compose Unificado (Recomendado)
+cd /opt/ATS/VersatileHub
+docker compose up -d
+# Levanta todos los servicios: agent, chat, hub, flow
 
-# Servicios de producción
-/opt/ats/Production/servicios/versatile-flow/  → services/flow/
+# 2. Infraestructura Compartida (Opcional)
+# Puede usar Traefik existente de /opt/ATS/Production
+# Solo requiere que exista la red 'web'
+docker network create web
 
-# Infraestructura
-/opt/ats/Production/infraestructura/traefik/   → infrastructure/traefik/
-/opt/ats/Production/infraestructura/nginx/     → infrastructure/nginx/
-/opt/ats/Production/infraestructura/ssl/       → infrastructure/ssl/
-/opt/ats/Production/infraestructura/letsencrypt/ → infrastructure/letsencrypt/
-
-# Backups
-/opt/ats/restic/                       → lab/backups/
+# 3. Backups
+# Integra con sistema Restic existente
+/opt/ATS/restic/scripts/backup.sh
 ```
+
+### Opciones de Despliegue Futuras
+
+```bash
+# Si se necesita despliegue selectivo por servicio:
+cd services/hub/
+docker compose up -d  # Solo Hub
+
+cd services/agent/
+docker compose up -d  # Solo Agent
+```
+
+**Nota:** Actualmente solo existe docker-compose.yml unificado en raíz.
+Docker-compose individuales por servicio se crearán si se requiere despliegue selectivo.
 
 ## 💡 Notas Importantes
 
-1. **No eliminar estructura antigua hasta validar completamente la nueva**
-2. **Hacer backup de todo antes de cada paso importante**
-3. **Probar cada servicio individualmente antes de integrar**
-4. **Documentar cualquier cambio o decisión importante**
+1. **VersatileHub es infraestructura nueva** - No reemplaza servicios existentes
+2. **Puede convivir con /opt/ATS/Production** - Comparte red Traefik
+3. **Hacer backup antes de despliegues importantes**
+4. **lab/spec/** es para gestionar contratos de desarrollo con clientes
 5. **Mantener este archivo actualizado con el progreso**
 
 ## 🚀 Comando Rápido: Siguiente Paso
@@ -276,11 +305,15 @@ docker compose logs -f
 docker compose ps
 ```
 
-Para migrar datos desde la estructura antigua:
+Para gestionar contratos de desarrollo:
 
 ```bash
-# Ver guía de migración
-cat lab/context/services-overview.md
+# Ver workflow de contratos
+cat lab/spec/contracts-workflow.md
+
+# Crear nuevo requerimiento
+cd lab/spec/requirements/
+cp README.md REQ-2026-02-001-feature-name.md
 
 # Script de migración (próximamente)
 # ./lab/scripts/migrate-from-old-structure.sh

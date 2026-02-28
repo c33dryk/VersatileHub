@@ -49,17 +49,15 @@ Este directorio ayuda a:
 
 ## 📂 Documentos Principales
 
-### Migración desde Estructura Anterior
+### Infraestructura Lista para Despliegue
 
-**Archivo:** `migration-context.md`
+**Archivo:** `deployment-context.md`
 
-Documenta el proceso de migración desde:
-- `/opt/ats/Dev/servicios/ats-agent`
-- `/opt/ats/Dev/servicios/ats-chat`
-- `/opt/ats/Dev/servicios/versatile-hub`
-- `/opt/ats/Production`
-
-Hacia la nueva estructura unificada de **Versatile Hub**.
+Documenta la infraestructura completa lista para desplegar:
+- Cada servicio tiene su propio `docker-compose.yml`
+- Infrastructure tiene configuración de Traefik y networking
+- No requiere migración de servicios existentes
+- Lista para levantar desde cero en entorno de cliente
 
 ### Selección de Stack Tecnológico
 

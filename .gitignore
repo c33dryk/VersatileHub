@@ -1,3 +1,19 @@
+# =============================================================================
+# VERSATILE HUB - Git Ignore Configuration
+# =============================================================================
+#
+# FILOSOFÍA:
+# - Commitear: Código, configuración template, documentación, contratos
+# - NO commitear: Datos sensibles, credenciales, datos de servicios, logs
+#
+# CONTRATOS DE DESARROLLO:
+# - lab/spec/requirements/*.md   → ✅ COMMITEAR
+# - lab/spec/analysis/*.md       → ✅ COMMITEAR
+# - lab/spec/contracts/*.md      → ✅ COMMITEAR (excepto *-CONFIDENTIAL.md)
+#
+# Ver: GIT_WORKFLOW.md para más información
+# =============================================================================
+
 # === ARCHIVOS DE ENTORNO ===
 .env
 .env.local
@@ -5,6 +21,7 @@
 *.env
 **/.env
 **/infrastructure/.env
+services/*/.env
 
 # Excepto templates
 !.env.example
@@ -109,6 +126,25 @@ infrastructure/data/portainer/docker_config/**
 *secret*
 !**/scripts/*
 !**/*.md
+
+# === CONTRATOS Y ESPECIFICACIONES ===
+# ✅ COMMITEAR: Documentos de contratos (importantes para el negocio)
+# lab/spec/requirements/*.md
+# lab/spec/analysis/*.md
+# lab/spec/contracts/*.md
+
+# ❌ NO COMMITEAR: Información sensible en contratos
+lab/spec/contracts/*-CONFIDENTIAL.md
+lab/spec/contracts/*-pricing.md
+lab/spec/*/attachments/
+lab/spec/*/private/
+
+# === DESARROLLO Y SPECS ===
+# ✅ COMMITEAR: Especificaciones técnicas
+# lab/spec/agent-spec.md
+# lab/spec/chat-spec.md
+# lab/spec/hub-spec.md
+# lab/spec/flow-spec.md
 
 # === RESTIC ===
 restic-repo/

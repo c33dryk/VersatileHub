@@ -160,9 +160,34 @@ Ver: [environment-vars.md](./environment-vars.md)
 
 Ver: [deployment-guide.md](./deployment-guide.md)
 
-## 🔄 Migración desde Estructura Anterior
+## � Gestión de Contratos de Desarrollo
 
-Ver guía detallada: [migration-guide.md](./migration-guide.md)
+**Propósito**: Este directorio contiene las especificaciones técnicas que sirven como base para los contratos de desarrollo con clientes.
+
+### Workflow de Contratos
+
+1. **Cliente solicita funcionalidad**
+   - Se documenta en el spec del servicio correspondiente
+   - Se evalúa viabilidad técnica
+   - Se estima esfuerzo
+
+2. **Definición de contrato**
+   - Funcionalidades específicas
+   - Criterios de aceptación
+   - Milestones y entregables
+   - Timeline
+
+3. **Desarrollo**
+   - Implementación según spec
+   - Testing
+   - Documentación
+
+4. **Entrega**
+   - Deploy en ambiente cliente
+   - Validación con cliente
+   - Cierre de contrato
+
+Ver: [contracts-workflow.md](./contracts-workflow.md)
 
 ## 📊 Monitoreo y Logs
 

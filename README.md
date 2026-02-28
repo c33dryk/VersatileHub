@@ -6,7 +6,14 @@
 
 ## 📋 Descripción
 
-Versatile Hub es una suite integrada de servicios empresariales que combina gestión de agentes, chat en tiempo real, automatización de flujos de trabajo y un hub central de aplicaciones.
+Versatile Hub es una suite integrada de servicios empresariales **lista para desplegar desde cero** en entornos de clientes. Combina gestión de agentes inteligentes (IA), chat omnicanal en tiempo real, automatización de flujos de trabajo y un hub central de aplicaciones ERP.
+
+**Características principales:**
+- ✅ Despliegue desde cero - No requiere migración
+- ✅ Docker Compose unificado - Todos los servicios coordinados
+- ✅ Puede convivir con infraestructura existente (Traefik)
+- ✅ Sistema de contratos de desarrollo integrado (`lab/spec/`)
+- ✅ Backups automatizados con Restic
 
 ## 🏗️ Arquitectura
 
@@ -28,14 +35,18 @@ Versatile Hub es una suite integrada de servicios empresariales que combina gest
 
 ```
 Versatile Hub/
-├── lab/              # Laboratorio de desarrollo y documentación
-│   ├── context/      # Documentación de contexto y decisiones
-│   ├── spec/         # Especificaciones técnicas
+├── lab/              # 🧪 Laboratorio: Documentación y contratos de desarrollo
+│   ├── context/      # Arquitectura y decisiones técnicas
+│   ├── spec/         # ⭐ Especificaciones y contratos con clientes
+│   │   ├── requirements/   # Requerimientos de clientes (REQ-*)
+│   │   ├── analysis/       # Análisis técnicos (ANA-*)
+│   │   ├── contracts/      # Contratos formalizados (CONT-*)
+│   │   └── contracts-workflow.md  # Proceso de gestión
 │   ├── backups/      # Scripts y configuración de backups
 │   ├── config/       # Configuraciones globales
 │   └── scripts/      # Scripts de utilidad
-├── infrastructure/   # Componentes de infraestructura (traefik, nginx, ssl)
-└── services/         # Microservicios de la aplicación (agent, chat, flow, hub)
+├── infrastructure/   # Infraestructura base (Traefik, Nginx)
+└── services/         # Microservicios (agent, chat, flow, hub)
 ```
 
 ## 🚀 Inicio Rápido
@@ -106,10 +117,26 @@ docker exec -it versatile-hub-backend \
 
 ## 📚 Documentación
 
-- [Especificaciones](./lab/spec/README.md)
-- [Contexto del Proyecto](./lab/context/README.md)
-- [Guía de Configuración](./lab/config/README.md)
-- [Scripts de Utilidad](./lab/scripts/README.md)
+### Operaciones y Arquitectura
+- **[Guía de Inicio Rápido](./QUICKSTART.md)** - Deploy en 15 minutos
+- **[Contexto de Despliegue](./lab/context/deployment-context.md)** - Modelo de despliegue
+- **[Arquitectura de Redes](./lab/context/networks-architecture.md)** - Redes Docker
+- **[Overview de Servicios](./lab/context/services-overview.md)** - Detalles técnicos
+
+### Gestión de Contratos de Desarrollo
+- **[⭐ Workflow de Contratos](./lab/spec/contracts-workflow.md)** - Proceso completo
+- **[Requerimientos](./lab/spec/requirements/)** - Solicitudes de clientes
+- **[Análisis Técnicos](./lab/spec/analysis/)** - Evaluación de viabilidad
+- **[Contratos](./lab/spec/contracts/)** - Contratos formalizados
+
+### Configuración y Mantenimiento
+- **[Variables de Entorno](.env.example)** - Configuración global
+- **[Sistema de Backups](./lab/backups/README.md)** - Integrado con Restic
+- **[Scripts de Utilidad](./lab/scripts/README.md)** - Automatización
+
+### Control de Versiones
+- **[🔀 Git Workflow](./GIT_WORKFLOW.md)** - Guía completa de Git para el proyecto
+- **[.gitignore](./.gitignore)** - Qué commitear y qué no
 
 ## 🔧 Configuración
 
@@ -156,17 +183,15 @@ docker compose restart [servicio] # Reiniciar servicio específico
 docker compose pull               # Actualizar imágenes
 ```
 
-### Por Servicio
+### Por Servicio (Futuro)
+
+**Nota:** Actualmente VersatileHub usa un docker-compose.yml unificado.
+Docker-compose individuales por servicio se crearán si se requiere despliegue selectivo.
 
 ```bash
-# Solo Agent
-docker compose up -d agent
-
-# Solo Chat (web, worker, DB)
-docker compose up -d chat-web chat-worker chat-postgres chat-redis
-
-# Solo Hub (todos los componentes)
-docker compose up -d hub-frontend hub-backend hub-websocket hub-worker hub-scheduler hub-db
+# Ejemplo futuro:
+cd services/hub/
+docker compose up -d  # Solo Hub
 ```
 
 ### Actualización
@@ -187,9 +212,35 @@ docker compose ps
 
 ## 🔄 Backups
 
-Los backups se ejecutan automáticamente usando Restic:
+Los backups se integran con el sistema Restic existente en `/opt/ATS/restic/`:
+
 ```bash
+# Backup completo del sistema
+/opt/ATS/restic/scripts/backup.sh
+
+# Scripts específicos de VersatileHub (próximamente)
 ./lab/backups/scripts/backup.sh
+```
+
+## 📝 Gestión de Contratos con Clientes
+
+VersatileHub incluye un sistema completo para gestionar contratos de desarrollo:
+
+```bash
+# 1. Cliente solicita funcionalidad
+cd lab/spec/requirements/
+vi REQ-2026-02-001-nueva-feature.md
+
+# 2. Análisis técnico
+cd ../analysis/
+vi ANA-2026-02-001-nueva-feature.md
+
+# 3. Contrato formalizado
+cd ../contracts/
+vi CONT-2026-02-001-nueva-feature.md
+
+# 4. Desarrollo según spec
+# Ver: lab/spec/contracts-workflow.md
 ```
 
 ## 📝 Licencia
