@@ -1,5 +1,3 @@
-version: '3.8'
-
 # =============================================================================
 # VERSATILE HUB - Docker Compose Unificado
 # =============================================================================
@@ -369,6 +367,136 @@ services:
       - hub-internal
 
   # ===========================================================================
+  # ALTAMIRA SERVICE - Frappe/ERPNext (Copia de Hub para Clientes)
+  # ===========================================================================
+
+  # --- MariaDB ---
+  altamira-db:
+    image: mariadb:11.7
+    container_name: versatile-altamira-db
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    environment:
+      - MYSQL_ROOT_PASSWORD=${ALTAMIRA_DB_ROOT_PASSWORD}
+    volumes:
+      - ./services/altamira/data/mariadb:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      retries: 30
+      start_period: 10s
+    networks:
+      - altamira-internal
+
+  # --- Redis Cache ---
+  altamira-redis-cache:
+    image: redis:7.4-alpine
+    container_name: versatile-altamira-redis-cache
+    restart: unless-stopped
+    networks:
+      - altamira-internal
+
+  # --- Redis Queue ---
+  altamira-redis-queue:
+    image: redis:7.4-alpine
+    container_name: versatile-altamira-redis-queue
+    restart: unless-stopped
+    networks:
+      - altamira-internal
+
+  # --- Backend (Gunicorn) ---
+  altamira-backend:
+    image: frappe/erpnext:v15
+    container_name: versatile-altamira-backend
+    restart: unless-stopped
+    volumes:
+      - ./services/altamira/data/sites:/home/frappe/frappe-bench/sites
+      - altamira-assets:/home/frappe/frappe-bench/sites/assets
+    networks:
+      - altamira-internal
+      - shared
+    depends_on:
+      altamira-db:
+        condition: service_healthy
+
+  # --- Frontend (Nginx) ---
+  altamira-frontend:
+    image: frappe/erpnext:v15
+    container_name: versatile-altamira-frontend
+    restart: unless-stopped
+    command: ["nginx-entrypoint.sh"]
+    environment:
+      - BACKEND=altamira-backend:8000
+      - SOCKETIO=altamira-websocket:9000
+      - FRAPPE_SITE_NAME_HEADER=${ALTAMIRA_SITE_NAME}
+    volumes:
+      - ./services/altamira/data/sites:/home/frappe/frappe-bench/sites
+      - altamira-assets:/home/frappe/frappe-bench/sites/assets
+    labels:
+      - "traefik.enable=true"
+      # HTTP → HTTPS
+      - "traefik.http.routers.altamira-http.rule=Host(`${ALTAMIRA_DOMAIN}`)"
+      - "traefik.http.routers.altamira-http.entrypoints=web"
+      - "traefik.http.middlewares.altamira-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.altamira-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.altamira-http.middlewares=altamira-redirect"
+      # HTTPS
+      - "traefik.http.routers.altamira.rule=Host(`${ALTAMIRA_DOMAIN}`)"
+      - "traefik.http.routers.altamira.entrypoints=websecure"
+      - "traefik.http.routers.altamira.tls=true"
+      - "traefik.http.routers.altamira.tls.certresolver=${CERT_RESOLVER:-cloudflare}"
+      - "traefik.http.services.altamira.loadbalancer.server.port=8080"
+      - "traefik.docker.network=web"
+    networks:
+      - web
+      - altamira-internal
+    depends_on:
+      - altamira-backend
+      - altamira-websocket
+
+  # --- WebSocket (SocketIO) ---
+  altamira-websocket:
+    image: frappe/erpnext:v15
+    container_name: versatile-altamira-websocket
+    restart: unless-stopped
+    command: ["node", "/home/frappe/frappe-bench/apps/frappe/socketio.js"]
+    volumes:
+      - ./services/altamira/data/sites:/home/frappe/frappe-bench/sites
+      - altamira-assets:/home/frappe/frappe-bench/sites/assets
+    networks:
+      - altamira-internal
+
+  # --- Worker (Background Jobs) ---
+  altamira-worker:
+    image: frappe/erpnext:v15
+    container_name: versatile-altamira-worker
+    restart: unless-stopped
+    user: frappe
+    command: ["bench", "worker", "--queue", "long,short,default"]
+    volumes:
+      - ./services/altamira/data/sites:/home/frappe/frappe-bench/sites
+      - altamira-assets:/home/frappe/frappe-bench/sites/assets
+    networks:
+      - altamira-internal
+
+  # --- Scheduler (Cron Jobs) ---
+  altamira-scheduler:
+    image: frappe/erpnext:v15
+    container_name: versatile-altamira-scheduler
+    restart: unless-stopped
+    user: frappe
+    command: ["bench", "schedule"]
+    volumes:
+      - ./services/altamira/data/sites:/home/frappe/frappe-bench/sites
+      - altamira-assets:/home/frappe/frappe-bench/sites/assets
+    networks:
+      - altamira-internal
+
+  # ===========================================================================
   # FLOW SERVICE - n8n Automation
   # ===========================================================================
   
@@ -468,6 +596,15 @@ networks:
       config:
         - subnet: 172.31.0.0/16
 
+  altamira-internal:
+    driver: bridge
+    name: versatile-altamira-internal
+    driver_opts:
+      com.docker.network.bridge.name: br-altamira
+    ipam:
+      config:
+        - subnet: 172.32.0.0/16
+
 # =============================================================================
 # VOLUMES
 # =============================================================================
@@ -476,3 +613,8 @@ volumes:
   hub-assets:
     driver: local
     name: versatile-hub-assets
+
+  # Altamira assets (compartidos entre varios contenedores)
+  altamira-assets:
+    driver: local
+    name: versatile-altamira-assets
