@@ -245,6 +245,8 @@ services:
     image: mariadb:11.7
     container_name: versatile-hub-db
     restart: unless-stopped
+    env_file:
+      - ./services/hub/.env
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -267,6 +269,8 @@ services:
     image: redis:7.4-alpine
     container_name: versatile-hub-redis-cache
     restart: unless-stopped
+    env_file:
+      - ./services/hub/.env
     networks:
       - hub-internal
 
@@ -275,6 +279,8 @@ services:
     image: redis:7.4-alpine
     container_name: versatile-hub-redis-queue
     restart: unless-stopped
+    env_file:
+      - ./services/hub/.env
     networks:
       - hub-internal
 
@@ -283,6 +289,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-hub-backend
     restart: unless-stopped
+    env_file:
+      - ./services/hub/.env
     volumes:
       - ./services/hub/data/sites:/home/frappe/frappe-bench/sites
       - hub-assets:/home/frappe/frappe-bench/sites/assets
@@ -298,6 +306,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-hub-frontend
     restart: unless-stopped
+    env_file:
+      - ./services/hub/.env
     command: ["nginx-entrypoint.sh"]
     environment:
       - BACKEND=hub-backend:8000
@@ -333,6 +343,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-hub-websocket
     restart: unless-stopped
+    env_file:
+      - ./services/hub/.env
     command: ["node", "/home/frappe/frappe-bench/apps/frappe/socketio.js"]
     volumes:
       - ./services/hub/data/sites:/home/frappe/frappe-bench/sites
@@ -345,6 +357,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-hub-worker
     restart: unless-stopped
+    env_file:
+      - ./services/hub/.env
     user: frappe
     command: ["bench", "worker", "--queue", "long,short,default"]
     volumes:
@@ -358,6 +372,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-hub-scheduler
     restart: unless-stopped
+    env_file:
+      - ./services/hub/.env
     user: frappe
     command: ["bench", "schedule"]
     volumes:
@@ -375,6 +391,8 @@ services:
     image: mariadb:11.7
     container_name: versatile-altamira-db
     restart: unless-stopped
+    env_file:
+      - ./services/altamira/.env
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -397,6 +415,8 @@ services:
     image: redis:7.4-alpine
     container_name: versatile-altamira-redis-cache
     restart: unless-stopped
+    env_file:
+      - ./services/altamira/.env
     networks:
       - altamira-internal
 
@@ -405,6 +425,8 @@ services:
     image: redis:7.4-alpine
     container_name: versatile-altamira-redis-queue
     restart: unless-stopped
+    env_file:
+      - ./services/altamira/.env
     networks:
       - altamira-internal
 
@@ -413,6 +435,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-altamira-backend
     restart: unless-stopped
+    env_file:
+      - ./services/altamira/.env
     volumes:
       - ./services/altamira/data/sites:/home/frappe/frappe-bench/sites
       - altamira-assets:/home/frappe/frappe-bench/sites/assets
@@ -428,6 +452,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-altamira-frontend
     restart: unless-stopped
+    env_file:
+      - ./services/altamira/.env
     command: ["nginx-entrypoint.sh"]
     environment:
       - BACKEND=altamira-backend:8000
@@ -463,6 +489,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-altamira-websocket
     restart: unless-stopped
+    env_file:
+      - ./services/altamira/.env
     command: ["node", "/home/frappe/frappe-bench/apps/frappe/socketio.js"]
     volumes:
       - ./services/altamira/data/sites:/home/frappe/frappe-bench/sites
@@ -475,6 +503,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-altamira-worker
     restart: unless-stopped
+    env_file:
+      - ./services/altamira/.env
     user: frappe
     command: ["bench", "worker", "--queue", "long,short,default"]
     volumes:
@@ -488,6 +518,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-altamira-scheduler
     restart: unless-stopped
+    env_file:
+      - ./services/altamira/.env
     user: frappe
     command: ["bench", "schedule"]
     volumes:
@@ -505,6 +537,8 @@ services:
     image: mariadb:11.7
     container_name: versatile-feadar-db
     restart: unless-stopped
+    env_file:
+      - ./services/feadar/.env
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -527,6 +561,8 @@ services:
     image: redis:7.4-alpine
     container_name: versatile-feadar-redis-cache
     restart: unless-stopped
+    env_file:
+      - ./services/feadar/.env
     networks:
       - feadar-internal
 
@@ -535,6 +571,8 @@ services:
     image: redis:7.4-alpine
     container_name: versatile-feadar-redis-queue
     restart: unless-stopped
+    env_file:
+      - ./services/feadar/.env
     networks:
       - feadar-internal
 
@@ -543,6 +581,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-feadar-backend
     restart: unless-stopped
+    env_file:
+      - ./services/feadar/.env
     volumes:
       - ./services/feadar/data/sites:/home/frappe/frappe-bench/sites
       - feadar-assets:/home/frappe/frappe-bench/sites/assets
@@ -558,6 +598,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-feadar-frontend
     restart: unless-stopped
+    env_file:
+      - ./services/feadar/.env
     command: ["nginx-entrypoint.sh"]
     environment:
       - BACKEND=feadar-backend:8000
@@ -593,6 +635,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-feadar-websocket
     restart: unless-stopped
+    env_file:
+      - ./services/feadar/.env
     command: ["node", "/home/frappe/frappe-bench/apps/frappe/socketio.js"]
     volumes:
       - ./services/feadar/data/sites:/home/frappe/frappe-bench/sites
@@ -605,6 +649,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-feadar-worker
     restart: unless-stopped
+    env_file:
+      - ./services/feadar/.env
     user: frappe
     command: ["bench", "worker", "--queue", "long,short,default"]
     volumes:
@@ -618,6 +664,8 @@ services:
     image: frappe/erpnext:v15
     container_name: versatile-feadar-scheduler
     restart: unless-stopped
+    env_file:
+      - ./services/feadar/.env
     user: frappe
     command: ["bench", "schedule"]
     volumes:
