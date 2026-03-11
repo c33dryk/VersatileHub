@@ -27,16 +27,55 @@ Versatile Hub es una suite integrada de servicios empresariales que combina gest
 ## 📁 Estructura del Proyecto
 
 ```
-Versatile Hub/
-├── lab/              # Laboratorio de desarrollo y documentación
-│   ├── context/      # Documentación de contexto y decisiones
-│   ├── spec/         # Especificaciones técnicas
-│   ├── backups/      # Scripts y configuración de backups
-│   ├── config/       # Configuraciones globales
-│   └── scripts/      # Scripts de utilidad
-├── infrastructure/   # Componentes de infraestructura (traefik, nginx, ssl)
-└── services/         # Microservicios de la aplicación (agent, chat, flow, hub)
+VersatileHub/
+│
+├── 📂 lab/                    # Laboratorio: documentación, specs, scripts, config
+│   ├── CLAUDE.md             # Guía de integración Claude/Copilot
+│   ├── CURRENT_STATUS.md     # Estado actual del proyecto
+│   ├── README.md             # Documentación del lab
+│   ├── backups/              # Scripts y configuración de backups
+│   ├── config/               # Configuraciones y plantillas
+│   │   ├── claude/           # Configuración de Claude/Copilot
+│   │   │   ├── install.sh   # Instalar configuraciones en raíz
+│   │   │   ├── templates/   # Plantillas maestras
+│   │   │   └── agents/      # Agentes personalizados
+│   │   └── README.md
+│   ├── context/              # Decisiones de arquitectura (ADR)
+│   ├── scripts/              # Scripts de utilidad
+│   └── spec/                 # Especificaciones técnicas
+│
+├── 📂 infrastructure/         # Infraestructura base
+│   ├── docker-compose.yml
+│   ├── traefik/              # Reverse proxy y SSL
+│   ├── nginx/                # Servidor web
+│   └── data/                 # Datos persistentes (gitignored)
+│
+├── 📂 services/               # Microservicios
+│   ├── agent/                # Servicio de agentes (OpenClaw)
+│   ├── chat/                 # Chat (Chatwoot)
+│   ├── flow/                 # Flujos (Node-RED)
+│   ├── hub/                  # Hub central (WordPress)
+│   └── portal/               # Portal web (Next.js)
+│
+├── 📄 .env                    # Variables de entorno (gitignored)
+├── 📄 .env.example            # Plantilla de variables
+├── 📄 .gitignore              # Archivos ignorados por Git
+├── 📄 .dockerignore           # Archivos ignorados por Docker
+├── 📄 docker-compose.yml      # Orquestación principal
+├── 📄 deploy.sh               # Script de despliegue
+├── 📄 quick-install.sh        # Instalación rápida
+└── 📄 verify-environment.sh   # Verificación de entorno
+
+Archivos de configuración instalados (desde lab/, gitignored):
+├── 📄 .clinerules                        # ← lab/config/claude/templates/
+├── 📂 .github/copilot-instructions.md    # ← lab/config/claude/templates/
+└── 📂 .vscode/                           # ← lab/config/claude/templates/
 ```
+
+**Filosofía de estructura:**
+- **Raíz limpia**: Solo archivos esenciales de deployment y configuración
+- **lab/**: Todo lo relacionado con desarrollo, documentación y configuración
+- **Portable**: Copia `lab/` a otros proyectos y reutiliza configuraciones
 
 ## 🚀 Inicio Rápido
 
@@ -104,9 +143,47 @@ docker exec -it versatile-hub-backend \
 5. Agregar token al `.env` como `CHAT_API_ACCESS_TOKEN`
 6. Reiniciar chat-bridge: `docker compose restart chat-bridge`
 
+## 🤖 Configuración de IDE (Claude/Copilot)
+
+Para desarrollo con asistencia de IA, instala las configuraciones desde `lab/`:
+
+```bash
+# Instalar configuraciones de Claude/Copilot desde lab/
+./lab/config/claude/install.sh
+```
+
+**Esto configura:**
+- GitHub Copilot con instrucciones del proyecto
+- Cline/Claude Code con reglas específicas
+- VS Code con settings optimizados
+- Extensiones recomendadas
+
+**Ver guía completa:** [lab/CLAUDE.md](lab/CLAUDE.md)
+
+**Requisitos:**
+- Visual Studio Code instalado
+- Extensión GitHub Copilot (recomendado) o
+- Extensión Cline/Claude Code (opcional, para agentes avanzados)
+
 ## 📚 Documentación
 
-- [Especificaciones](./lab/spec/README.md)
+### Guías de Uso
+- [Referencia Rápida](./lab/QUICK_REFERENCE.md) - Comandos y rutas principales
+- [Guía de Inicio Rápido](./lab/QUICKSTART.md) - Instalación paso a paso
+- [Estructura del Proyecto](./lab/STRUCTURE.md) - Descripción detallada de directorios
+
+### Desarrollo
+- [Integración Claude/Copilot](./lab/CLAUDE.md) - Configuración de asistentes IA
+- [Estado Actual](./lab/CURRENT_STATUS.md) - Estado del proyecto
+- [Resumen de Implementación](./lab/IMPLEMENTATION_SUMMARY.md) - Cambios implementados
+
+### Deployment
+- [Deployment Remoto](./lab/DEPLOYMENT_REMOTE.md) - Despliegue en servidores remotos
+
+### Técnico
+- [Especificaciones](./lab/spec/README.md) - Especificaciones técnicas detalladas
+- [Contexto y ADRs](./lab/context/README.md) - Decisiones de arquitectura
+- [Backups](./lab/backups/README.md) - Sistema de respaldos
 - [Contexto del Proyecto](./lab/context/README.md)
 - [Guía de Configuración](./lab/config/README.md)
 - [Scripts de Utilidad](./lab/scripts/README.md)

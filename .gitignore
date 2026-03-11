@@ -70,11 +70,29 @@ temp/
 *~
 .DS_Store
 
-# === IDE ===
-.vscode/
+# === IDE Y CLAUDE/AI ===
+# Archivos de configuración instalados desde lab/config/claude/
+# Estos se generan con: ./lab/config/claude/install.sh
+# Las plantillas están en: lab/config/claude/templates/
+.clinerules
+.cursorrules
+.github/copilot-instructions.md
+.vscode/settings.json
+.vscode/extensions.json
+
+# Excepciones: permitir otras configuraciones de .vscode/
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# Otros IDEs
 .idea/
 *.sublime-*
 .project
+
+# Cachés y sesiones locales de Claude/AI
+.claude/
+.copilot/
+*.claude-cache
 
 # === NODE (si se usa) ===
 node_modules/

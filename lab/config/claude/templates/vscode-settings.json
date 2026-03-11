@@ -1,0 +1,71 @@
+{
+  "// GitHub Copilot Configuration for Claude": "",
+  "github.copilot.enable": {
+    "*": true,
+    "yaml": true,
+    "plaintext": false,
+    "markdown": true,
+    "javascript": true,
+    "typescript": true,
+    "python": true,
+    "dockerfile": true,
+    "shellscript": true
+  },
+  "github.copilot.editor.enableAutoCompletions": true,
+  "chat.editor.wordWrap": "on",
+  
+  "// Editor Configuration": "",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit"
+  },
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  
+  "// Files Configuration": "",
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.git": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.next": true,
+    "**/coverage": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/.next/**": true,
+    "**/data/**": true,
+    "**/infrastructure/data/**": true
+  },
+  
+  "// Language Specific": "",
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": {
+      "comments": "on",
+      "strings": "on",
+      "other": "on"
+    }
+  },
+  
+  "// Docker Configuration": "",
+  "docker.showStartPage": false,
+  
+  "// Terminal Configuration": "",
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.scrollback": 10000
+}

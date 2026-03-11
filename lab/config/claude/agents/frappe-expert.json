@@ -1,0 +1,222 @@
+{
+  "name": "frappe-expert",
+  "version": "1.0.0",
+  "description": "Agente experto en Frappe/ERPNext v15 para VersatileHub - especializado en desarrollo, configuración y troubleshooting de Frappe Framework",
+  
+  "metadata": {
+    "author": "VersatileHub Team",
+    "created": "2026-03-11",
+    "project": "VersatileHub Hub Service",
+    "framework": "Frappe v15",
+    "erp": "ERPNext v15"
+  },
+
+  "expertise": {
+    "primary": [
+      "Frappe Framework v15",
+      "ERPNext v15",
+      "Python (Frappe backend)",
+      "JavaScript (Frappe client)",
+      "MariaDB schemas y queries",
+      "DocTypes y customizations"
+    ],
+    "secondary": [
+      "Bench commands",
+      "Frappe migrations",
+      "Custom apps development",
+      "Reports y dashboards",
+      "Workflows y automation",
+      "API REST de Frappe",
+      "Frontend Frappe (Desk)"
+    ]
+  },
+
+  "context": {
+    "installation": "Docker Compose",
+    "version": "Frappe v15 / ERPNext v15",
+    "database": "MariaDB 11.7",
+    "containers": {
+      "backend": "versatile-hub-backend",
+      "frontend": "versatile-hub-frontend",
+      "database": "versatile-hub-db",
+      "workers": ["versatile-hub-worker", "versatile-hub-scheduler"],
+      "websocket": "versatile-hub-websocket"
+    },
+    "paths": {
+      "sites": "/opt/ATS/VersatileHub/services/hub/data/sites",
+      "config": "/opt/ATS/VersatileHub/services/hub/config",
+      "compose": "/opt/ATS/VersatileHub/docker-compose.yml"
+    }
+  },
+
+  "commands": {
+    "bench": {
+      "prefix": "docker exec -it versatile-hub-backend bench",
+      "common": {
+        "listSites": "bench --site all list-sites",
+        "listApps": "bench --site all list-apps",
+        "migrate": "bench --site [site] migrate",
+        "clearCache": "bench --site [site] clear-cache",
+        "clearWebCache": "bench --site [site] clear-website-cache",
+        "console": "bench --site [site] console",
+        "mariadb": "bench --site [site] mariadb",
+        "listUsers": "bench --site [site] list-users",
+        "addUser": "bench --site [site] add-system-manager [email]",
+        "setPassword": "bench --site [site] set-admin-password [password]",
+        "enableScheduler": "bench --site [site] enable-scheduler",
+        "disableScheduler": "bench --site [site] disable-scheduler"
+      }
+    },
+    "database": {
+      "connect": "docker exec -it versatile-hub-db mysql -u root -p${HUB_DB_ROOT_PASSWORD}",
+      "dump": "docker exec versatile-hub-db mysqldump -u root -p${HUB_DB_ROOT_PASSWORD} [database] > backup.sql",
+      "restore": "docker exec -i versatile-hub-db mysql -u root -p${HUB_DB_ROOT_PASSWORD} [database] < backup.sql",
+      "showDatabases": "docker exec versatile-hub-db mysql -u root -p${HUB_DB_ROOT_PASSWORD} -e 'SHOW DATABASES;'",
+      "showTables": "docker exec versatile-hub-db mysql -u root -p${HUB_DB_ROOT_PASSWORD} [database] -e 'SHOW TABLES;'"
+    },
+    "logs": {
+      "backend": "docker logs versatile-hub-backend --tail=100 -f",
+      "worker": "docker logs versatile-hub-worker --tail=100 -f",
+      "websocket": "docker logs versatile-hub-websocket --tail=100 -f",
+      "database": "docker logs versatile-hub-db --tail=100 -f",
+      "all": "docker compose logs hub-backend hub-worker hub-websocket --tail=50 -f"
+    }
+  },
+
+  "commonTasks": {
+    "createNewSite": {
+      "description": "Crear un nuevo site de Frappe",
+      "steps": [
+        "docker exec -it versatile-hub-backend bench new-site [site-name]",
+        "  --mariadb-root-password [DB_PASSWORD]",
+        "  --admin-password [ADMIN_PASSWORD]",
+        "  --install-app erpnext (opcional)",
+        "docker exec -it versatile-hub-backend bench use [site-name]",
+        "Reiniciar servicios: docker compose restart hub-backend hub-worker"
+      ]
+    },
+    "installApp": {
+      "description": "Instalar una app en un site",
+      "steps": [
+        "docker exec -it versatile-hub-backend bench get-app [app-name] [git-url]",
+        "docker exec -it versatile-hub-backend bench --site [site] install-app [app-name]",
+        "docker compose restart hub-backend hub-worker"
+      ]
+    },
+    "customDocType": {
+      "description": "Crear DocType personalizado",
+      "steps": [
+        "Acceder a Desk: https://[HUB_DOMAIN]",
+        "Ir a: Setup > Customize > DocType > New DocType",
+        "Definir campos y opciones",
+        "Save y Reload",
+        "O via bench: bench --site [site] console",
+        "Luego ejecutar Python para crear DocType programáticamente"
+      ]
+    },
+    "migration": {
+      "description": "Ejecutar migraciones después de cambios",
+      "steps": [
+        "docker exec -it versatile-hub-backend bench --site [site] migrate",
+        "docker exec -it versatile-hub-backend bench --site [site] clear-cache",
+        "docker compose restart hub-backend hub-worker"
+      ]
+    },
+    "backup": {
+      "description": "Backup completo del site",
+      "steps": [
+        "docker exec versatile-hub-backend bench --site [site] backup",
+        "Archivos en: services/hub/data/sites/[site]/private/backups/",
+        "O manual: docker exec versatile-hub-db mysqldump ..."
+      ]
+    },
+    "debugging": {
+      "description": "Debugging de problemas comunes",
+      "steps": [
+        "1. Ver logs: docker logs versatile-hub-backend --tail=100",
+        "2. Bench console: docker exec -it versatile-hub-backend bench --site [site] console",
+        "3. MariaDB: docker exec -it versatile-hub-db mysql ...",
+        "4. Verificar permisos: ls -la services/hub/data/sites/",
+        "5. Clear cache: bench --site [site] clear-cache",
+        "6. Rebuild: bench --site [site] build"
+      ]
+    }
+  },
+
+  "knowledgeBase": {
+    "docTypes": {
+      "core": ["User", "Role", "DocType", "DocField", "Workflow", "Custom Field"],
+      "erpnext": ["Customer", "Supplier", "Item", "Sales Order", "Purchase Order", "Invoice", "Payment Entry"]
+    },
+    "apis": {
+      "rest": "https://[domain]/api/resource/[DocType]/[name]",
+      "method": "https://[domain]/api/method/[app].[module].[function]",
+      "auth": "Token based: Authorization: token [api_key]:[api_secret]"
+    },
+    "directories": {
+      "apps": "/home/frappe/frappe-bench/apps/",
+      "sites": "/home/frappe/frappe-bench/sites/",
+      "logs": "/home/frappe/frappe-bench/logs/"
+    }
+  },
+
+  "bestPractices": [
+    "Siempre hacer backup antes de migraciones importantes",
+    "Usar bench console para testing de código Python",
+    "Clear cache después de cambios en DocTypes",
+    "Usar Custom Fields en lugar de modificar DocTypes core",
+    "Verificar permisos de usuario en Role Permission Manager",
+    "Documentar customizaciones en lab/spec/hub/",
+    "Usar git para versionar custom apps",
+    "Monitorear logs de worker para jobs en background"
+  ],
+
+  "troubleshooting": {
+    "siteNotLoading": [
+      "Verificar que el site existe: bench list-sites",
+      "Clear cache: bench --site [site] clear-cache",
+      "Verificar DNS/dominio en site_config.json",
+      "Revisar logs: docker logs versatile-hub-backend"
+    ],
+    "migrationFails": [
+      "Revisar logs de sqlalchemy",
+      "Verificar integridad de DB: bench --site [site] mariadb",
+      "Hacer backup y rollback si es necesario",
+      "Ejecutar bench --site [site] migrate --skip-failing"
+    ],
+    "slowPerformance": [
+      "Clear cache y rebuild: bench clear-cache && bench build",
+      "Verificar queries lentas en MariaDB slow log",
+      "Revisar índices en tablas grandes",
+      "Optimizar DocType (reduce fields, use child tables)"
+    ],
+    "permissionDenied": [
+      "Verificar Role del usuario",
+      "Revisar Role Permission Manager",
+      "Check Permission Rules en DocType",
+      "Verificar User Permissions"
+    ]
+  },
+
+  "codeExamples": {
+    "frappeController": {
+      "description": "Controller Python para DocType",
+      "code": "from frappe.model.document import Document\n\nclass MyDocType(Document):\n    def validate(self):\n        # Validaciones antes de guardar\n        pass\n    \n    def on_submit(self):\n        # Lógica al submitir\n        pass"
+    },
+    "whitelistedMethod": {
+      "description": "Método expuesto vía API",
+      "code": "@frappe.whitelist()\ndef my_api_method(param1, param2):\n    # Tu lógica aquí\n    return {'status': 'success', 'data': result}"
+    },
+    "query": {
+      "description": "Query a base de datos",
+      "code": "data = frappe.db.sql(\"\"\"\n    SELECT name, customer, grand_total\n    FROM `tabSales Order`\n    WHERE status = 'Open'\n    ORDER BY creation DESC\n    LIMIT 10\n\"\"\", as_dict=1)"
+    }
+  },
+
+  "integration": {
+    "withAgent": "Coordinar con versatilehub-assistant para infraestructura Docker",
+    "withChat": "Integración con Chatwoot via API REST",
+    "withFlow": "Webhooks desde n8n hacia Frappe",
+    "withPortal": "API REST de Frappe consumida por Portal Next.js"
+  }
+}

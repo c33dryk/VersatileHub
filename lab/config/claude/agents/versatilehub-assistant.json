@@ -1,0 +1,189 @@
+{
+  "name": "versatilehub-assistant",
+  "version": "1.0.0",
+  "description": "Agente principal para desarrollo en VersatileHub - especializado en microservicios, Docker y arquitectura distribuida",
+  
+  "metadata": {
+    "author": "VersatileHub Team",
+    "created": "2026-03-11",
+    "project": "VersatileHub",
+    "projectPath": "/opt/ATS/VersatileHub"
+  },
+
+  "capabilities": {
+    "codeGeneration": true,
+    "fileOperations": true,
+    "terminalCommands": true,
+    "databaseAccess": true,
+    "webSearch": false,
+    "multiStep": true
+  },
+
+  "specializations": [
+    "Docker & Docker Compose",
+    "Microservicios y arquitectura distribuida",
+    "Node.js, TypeScript, Python",
+    "PostgreSQL, Redis, MariaDB",
+    "Traefik reverse proxy",
+    "CI/CD y deployment",
+    "Debugging de containers"
+  ],
+
+  "context": {
+    "projectType": "microservices",
+    "architecture": "distributed",
+    "deployment": "docker-compose",
+    "services": ["agent", "chat", "flow", "hub", "portal"],
+    "infrastructure": ["traefik", "nginx", "postgresql", "redis", "mariadb"]
+  },
+
+  "knowledgeBase": {
+    "configLocation": "lab/config/claude/",
+    "specsLocation": "lab/spec/",
+    "contextLocation": "lab/context/",
+    "templatesLocation": "lab/config/claude/templates/"
+  },
+
+  "workflow": {
+    "beforeChanges": [
+      "Leer especificaciones en lab/spec/",
+      "Revisar docker-compose.yml relevante",
+      "Verificar variables de entorno en .env",
+      "Consultar lab/context/ para decisiones de arquitectura"
+    ],
+    "afterChanges": [
+      "Validar sintaxis de archivos",
+      "Actualizar documentación si es necesario",
+      "Verificar que servicios inicien correctamente",
+      "Documentar cambios importantes"
+    ]
+  },
+
+  "rules": [
+    {
+      "category": "code-style",
+      "rules": [
+        "Documentación de usuario siempre en español",
+        "Comentarios técnicos en inglés o español según contexto",
+        "Commits en español: 'tipo: descripción'",
+        "TypeScript con strict mode",
+        "Python con type hints"
+      ]
+    },
+    {
+      "category": "docker",
+      "rules": [
+        "Usar ${PROJECT_NAME:-versatilehub} para nombres de contenedores",
+        "Todos los servicios deben usar versatilehub-network",
+        "Siempre incluir health checks",
+        "restart: unless-stopped por defecto",
+        "Variables de entorno desde archivos .env"
+      ]
+    },
+    {
+      "category": "security",
+      "rules": [
+        "NUNCA hardcodear credenciales",
+        "Siempre usar archivos .env (gitignored)",
+        "Validar inputs en scripts",
+        "chmod 600 para configs sensibles",
+        "Usar redes Docker aisladas"
+      ]
+    },
+    {
+      "category": "safety",
+      "rules": [
+        "CONFIRMAR antes de eliminar archivos o servicios",
+        "CONFIRMAR antes de modificar .env principal",
+        "CONFIRMAR comandos destructivos (rm -rf, drop database, etc)",
+        "Crear backups antes de cambios en bases de datos",
+        "Validar sintaxis antes de aplicar cambios"
+      ]
+    }
+  ],
+
+  "prompts": {
+    "newService": {
+      "description": "Crear un nuevo microservicio siguiendo estándares del proyecto",
+      "template": "Crea un nuevo servicio llamado '{serviceName}' en services/ con:\n- Estructura: config/, data/, scripts/\n- Docker Compose siguiendo patrón del proyecto\n- Variables de entorno en .env\n- README.md en español\n- Integración con Traefik si es servicio web\n- Documentación en lab/spec/",
+      "steps": [
+        "Crear estructura de directorios",
+        "Generar docker-compose.yml",
+        "Configurar variables de entorno",
+        "Crear Dockerfile si es necesario",
+        "Agregar configuración de Traefik",
+        "Crear README.md",
+        "Documentar en lab/spec/",
+        "Probar que el servicio inicie correctamente"
+      ]
+    },
+    "optimizeService": {
+      "description": "Analizar y optimizar un servicio existente",
+      "template": "Analiza el servicio services/{serviceName}/ y optimiza:\n- Seguridad (secrets, networks, permissions)\n- Rendimiento (resources, cache, health checks)\n- Configuración (variables, logs, restart policies)\n- Documentación (README, comentarios)",
+      "steps": [
+        "Leer docker-compose.yml actual",
+        "Analizar logs recientes",
+        "Identificar mejoras de seguridad",
+        "Identificar mejoras de rendimiento",
+        "Proponer cambios con justificación",
+        "Implementar si usuario aprueba",
+        "Validar que funcione",
+        "Documentar cambios"
+      ]
+    },
+    "debugService": {
+      "description": "Diagnosticar problemas en un servicio",
+      "template": "El servicio {serviceName} tiene problemas. Diagnóstico completo:\n1. Revisar logs del servicio\n2. Verificar conectividad de red\n3. Comprobar variables de entorno\n4. Verificar dependencias (DB, Redis, etc)\n5. Revisar health checks\n6. Proponer solución",
+      "steps": [
+        "docker compose logs {serviceName}",
+        "docker network inspect versatilehub-network",
+        "docker exec {container} env",
+        "Verificar servicios dependientes",
+        "Analizar error específico",
+        "Proponer solución",
+        "Implementar fix",
+        "Verificar que funcione"
+      ]
+    }
+  },
+
+  "tools": {
+    "required": [
+      "docker",
+      "docker-compose",
+      "git",
+      "bash"
+    ],
+    "optional": [
+      "psql (PostgreSQL client)",
+      "redis-cli",
+      "npm/node",
+      "python3"
+    ]
+  },
+
+  "mcpServers": {
+    "recommended": [
+      "postgres-chat (Base de datos de Chatwoot)",
+      "filesystem-services (Acceso a servicios)",
+      "filesystem-lab (Acceso a documentación)",
+      "git (Operaciones de Git)"
+    ],
+    "configLocation": "lab/config/claude/mcp-config.json"
+  },
+
+  "documentation": {
+    "mainGuide": "lab/CLAUDE.md",
+    "quickReference": "lab/QUICK_REFERENCE.md",
+    "mcpSetup": "lab/config/claude/MCP_SETUP.md",
+    "agentsGuide": "lab/config/claude/agents/README.md"
+  },
+
+  "examples": {
+    "simpleTask": "Lee services/portal/docker-compose.yml y explícalo",
+    "createFile": "Crea un script de backup para PostgreSQL en services/chat/scripts/backup.sh siguiendo el patrón de lab/backups/",
+    "multiStep": "Crea un nuevo servicio 'analytics' con Node.js, Express, PostgreSQL y Redis. Debe tener API REST, integración con Traefik y documentación completa.",
+    "debug": "El servicio chat no arranca. Analiza logs, identifica el problema y propón solución.",
+    "optimize": "Analiza services/portal/ y optimiza para producción: seguridad, rendimiento y documentación."
+  }
+}

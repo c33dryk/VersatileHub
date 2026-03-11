@@ -1,0 +1,297 @@
+# Instrucciones para Cline/Claude Code - VersatileHub
+
+## Contexto del Proyecto
+Eres un asistente experto trabajando en VersatileHub, un sistema modular de microservicios.
+
+### Arquitectura
+- **Servicios**: agent, chat, flow, hub, portal
+- **Infraestructura**: Traefik (reverse proxy), Nginx, Docker Compose
+- **Stack**: Node.js, TypeScript, Python, PostgreSQL, Redis, MariaDB
+- **Deployment**: Docker containers orquestados con compose
+
+### Estructura de Directorios
+```
+/opt/ATS/VersatileHub/
+├── services/          # Microservicios independientes
+│   ├── agent/         # Servicio de agentes (OpenClaw)
+│   ├── chat/          # Chatwoot + PostgreSQL + Redis
+│   ├── flow/          # Node-RED
+│   ├── hub/           # WordPress/CMS
+│   └── portal/        # Next.js + TypeScript
+├── infrastructure/    # Traefik, Nginx, SSL
+├── lab/               # Documentación y specs
+└── .github/           # Configuraciones de proyecto
+```
+
+## Reglas de Desarrollo
+
+### 1. Antes de Hacer Cambios
+- **SIEMPRE** lee `lab/spec/` para entender especificaciones
+- **VERIFICA** `docker-compose.yml` del servicio afectado
+- **REVISA** `.env` para variables de entorno necesarias
+- **CONSULTA** `lab/context/` para decisiones de arquitectura
+
+### 2. Al Crear o Modificar Servicios
+- **Estructura**: Cada servicio debe tener `config/`, `data/`, `scripts/`
+- **Docker**: Usa `${PROJECT_NAME:-versatilehub}` para nombres de contenedores
+- **Red**: Todos los servicios deben usar `versatilehub-network`
+- **Variables**: Nomenclatura: `SERVICIO_COMPONENTE_VARIABLE`
+- **Restart**: Siempre `restart: unless-stopped`
+
+### 3. Documentación (IMPORTANTE)
+- **README.md**: En español para usuarios
+- **Comentarios**: En inglés o español según contexto
+- **Commits**: Español, formato: `tipo: descripción`
+  - `feat:` Nueva funcionalidad
+  - `fix:` Corrección de bug
+  - `docs:` Documentación
+  - `refactor:` Refactorización
+  - `chore:` Mantenimiento
+
+### 4. Seguridad
+- **NUNCA** hardcodees credenciales
+- **SIEMPRE** usa archivos `.env` (ya están en .gitignore)
+- **VALIDA** inputs en scripts
+- **LIMITA** permisos: `chmod 600` para configs sensibles
+- **USA** health checks en servicios Docker
+
+### 5. Scripts de Deployment
+Estructura estándar:
+```bash
+#!/bin/bash
+set -e  # Exit on error
+
+echo "🔍 Verificando requisitos..."
+# validaciones
+
+echo "📦 Preparando entorno..."
+# preparación
+
+echo "🚀 Ejecutando..."
+# ejecución
+
+echo "✅ Verificando resultado..."
+# verificación
+
+echo "🧹 Limpiando..."
+# cleanup
+```
+
+### 6. Testing y Verificación
+Antes de confirmar cambios:
+```bash
+# 1. Verificar sintaxis de compose
+docker compose -f services/[servicio]/docker-compose.yml config
+
+# 2. Verificar environment
+./verify-environment.sh
+
+# 3. Test local
+docker compose up -d
+docker compose logs -f
+
+# 4. Health check
+curl http://localhost:[puerto]/health
+```
+
+## Capacidades de Agente
+
+### Puedes Hacer (Con Confirmación)
+- ✅ Crear y modificar archivos
+- ✅ Ejecutar comandos en terminal
+- ✅ Leer logs de Docker
+- ✅ Modificar configuraciones
+- ✅ Crear nuevos servicios
+- ✅ Generar documentación
+
+### Debes Confirmar Antes de
+- ⚠️ Eliminar archivos o servicios
+- ⚠️ Modificar `.env` principal
+- ⚠️ Cambiar configuraciones de producción
+- ⚠️ Ejecutar comandos destructivos (`rm -rf`, `drop database`, etc)
+- ⚠️ Modificar Traefik o configuraciones de red
+
+### NUNCA Hagas
+- ❌ Commitear archivos `.env`
+- ❌ Exponer credenciales en logs
+- ❌ Modificar datos en `services/*/data/` sin backup
+- ❌ Cambiar puertos sin actualizar documentación
+- ❌ Ignorar errores en scripts (`set -e` es obligatorio)
+
+## Ejemplos de Tareas Comunes
+
+### Crear Nuevo Servicio
+```bash
+# 1. Crear estructura
+mkdir -p services/[nombre]/{config,data,scripts}
+
+# 2. Crear docker-compose.yml siguiendo patrón
+
+# 3. Agregar variables a .env
+
+# 4. Crear README.md en español
+
+# 5. Documentar en lab/spec/
+
+# 6. Integrar con Traefik si es servicio web
+```
+
+### Optimizar Servicio Existente
+```bash
+# 1. Analizar docker-compose.yml actual
+
+# 2. Revisar logs: docker compose logs [servicio]
+
+# 3. Identificar cuellos de botella
+
+# 4. Proponer mejoras con justificación
+
+# 5. Implementar con testing
+
+# 6. Documentar cambios
+```
+
+### Debugging
+```bash
+# 1. Revisar logs primero
+docker compose -f services/[servicio]/docker-compose.yml logs --tail=100
+
+# 2. Verificar red
+docker network inspect versatilehub-network
+
+# 3. Verificar variables
+docker exec [container] env
+
+# 4. Inspeccionar container
+docker inspect [container]
+
+# 5. Revisar health checks
+docker ps --filter "status=unhealthy"
+```
+
+## Patrones de Código
+
+### Docker Compose (Template)
+```yaml
+services:
+  [nombre]:
+    container_name: ${PROJECT_NAME:-versatilehub}-[nombre]
+    image: [imagen]:[tag]
+    restart: unless-stopped
+    networks:
+      - versatilehub-network
+    volumes:
+      - ./data:/app/data
+    environment:
+      - VAR=${VAR}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:PORT/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.[nombre].rule=Host(`[nombre].${DOMAIN}`)"
+      - "traefik.http.routers.[nombre].entrypoints=websecure"
+      - "traefik.http.routers.[nombre].tls.certresolver=letsencrypt"
+
+networks:
+  versatilehub-network:
+    external: true
+```
+
+### TypeScript (Next.js)
+```typescript
+// Usar ESLint + Prettier configurados
+// 2 espacios de indentación
+// Comillas simples
+// Async/await sobre callbacks
+// Type safety siempre
+
+interface ServiceConfig {
+  name: string;
+  port: number;
+  environment: 'dev' | 'prod';
+}
+
+export const config: ServiceConfig = {
+  name: process.env.SERVICE_NAME || 'default',
+  port: parseInt(process.env.PORT || '3000'),
+  environment: process.env.NODE_ENV as 'dev' | 'prod',
+};
+```
+
+### Python (Scripts)
+```python
+#!/usr/bin/env python3
+# PEP 8 compliance
+# Type hints
+# 4 espacios de indentación
+
+from typing import Optional
+import sys
+
+def deploy_service(service: str, env: Optional[str] = None) -> bool:
+    """
+    Deploy a service with proper error handling.
+    
+    Args:
+        service: Service name
+        env: Environment (dev/prod)
+    
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        # Implementation
+        return True
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return False
+```
+
+## Referencias Rápidas
+
+### Archivos Importantes
+- `.github/copilot-instructions.md` - Instrucciones para GitHub Copilot
+- `lab/CLAUDE.md` - Esta guía
+- `lab/spec/` - Especificaciones técnicas
+- `lab/context/` - Decisiones de arquitectura (ADR)
+- `verify-environment.sh` - Script de verificación
+
+### Comandos Útiles
+```bash
+# Estado general
+docker compose ps
+
+# Logs de todo
+docker compose logs -f
+
+# Reiniciar servicio
+docker compose restart [servicio]
+
+# Verificar entorno
+./verify-environment.sh
+
+# Backup de base de datos
+docker exec [postgres] pg_dump -U user db > backup.sql
+```
+
+## Workflow de Agente
+
+Cuando trabajes en una tarea:
+
+1. **Entender**: Lee documentación relevante primero
+2. **Planificar**: Explica qué vas a hacer y por qué
+3. **Validar**: Verifica que el plan sea correcto
+4. **Implementar**: Ejecuta paso a paso
+5. **Verificar**: Prueba que funcione
+6. **Documentar**: Actualiza README.md si es necesario
+
+**Recuerda**: Siempre explica lo que haces y por qué antes de ejecutar comandos destructivos o cambios importantes.
+
+---
+
+**Versión**: 1.0.0  
+**Última actualización**: 2026-03-11  
+**Proyecto**: VersatileHub Microservices Platform

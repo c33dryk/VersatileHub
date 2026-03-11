@@ -441,6 +441,55 @@ services:
       - web
       - shared
 
+  # ===========================================================================
+  # PORTAL SERVICE - Next.js Portal 360
+  # ===========================================================================
+  
+  portal:
+    image: versatile-portal:latest
+    container_name: versatile-portal
+    restart: unless-stopped
+    build:
+      context: ./services/portal/portal
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_SUPABASE_URL=${PORTAL_SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${PORTAL_SUPABASE_ANON_KEY}
+    expose:
+      - "4000"
+    environment:
+      - PORT=4000
+      - NEXT_PUBLIC_SUPABASE_URL=${PORTAL_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${PORTAL_SUPABASE_ANON_KEY}
+      - BUCKET_NAME=${PORTAL_BUCKET_NAME:-documentos}
+      - BUCKET_ATTACHMENTS_FOLDER=${PORTAL_BUCKET_ATTACHMENTS_FOLDER:-archivos-adjuntos}
+      - BUCKET_FOLDER=${PORTAL_BUCKET_FOLDER:-facturas}
+      - BUCKET_MAX_FILE_SIZE=${PORTAL_BUCKET_MAX_FILE_SIZE:-10}
+      - NEXT_PUBLIC_PROJECT_NAME=${PORTAL_PROJECT_NAME:-Portal 360}
+      - INVOICE_ANALAYZER_URL=${PORTAL_INVOICE_ANALYZER_URL}
+      - INVOICE_ANALAYZER_API_KEY=${PORTAL_INVOICE_ANALYZER_API_KEY}
+      - API_TANGO_URL=${PORTAL_API_TANGO_URL}
+      - API_TANGO_KEY=${PORTAL_API_TANGO_KEY}
+      - TZ=${TZ:-America/Argentina/Buenos_Aires}
+    labels:
+      - "traefik.enable=true"
+      # HTTP → HTTPS
+      - "traefik.http.routers.portal-http.rule=Host(`${PORTAL_DOMAIN}`)"
+      - "traefik.http.routers.portal-http.entrypoints=web"
+      - "traefik.http.middlewares.portal-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.portal-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.portal-http.middlewares=portal-redirect"
+      # HTTPS
+      - "traefik.http.routers.portal.rule=Host(`${PORTAL_DOMAIN}`)"
+      - "traefik.http.routers.portal.entrypoints=websecure"
+      - "traefik.http.routers.portal.tls=true"
+      - "traefik.http.routers.portal.tls.certresolver=${CERT_RESOLVER:-cloudflare}"
+      - "traefik.http.services.portal.loadbalancer.server.port=4000"
+      - "traefik.docker.network=web"
+    networks:
+      - web
+      - shared
+
 # =============================================================================
 # NETWORKS
 # =============================================================================

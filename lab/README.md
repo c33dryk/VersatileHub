@@ -39,6 +39,7 @@ Configuraciones globales y plantillas para todos los servicios.
 - Configuraciones compartidas
 - Plantillas de configuración
 - Documentación de configuración
+- **claude/** - Configuración de Claude Code/Copilot (ver [config/claude/README.md](config/claude/README.md))
 
 ### scripts/
 Scripts de utilidad para gestión, despliegue y mantenimiento.
@@ -48,6 +49,21 @@ Scripts de utilidad para gestión, despliegue y mantenimiento.
 - Herramientas de migración
 - Utilidades de mantenimiento
 - Scripts de automatización
+
+## 📄 Archivos Principales
+
+### CLAUDE.md
+Guía completa para la integración de Claude Code / GitHub Copilot en el proyecto.
+
+**Contenido:**
+- Instalación y configuración en VS Code
+- Comandos útiles y casos de uso
+- Mejores prácticas con prompts
+- Integración con el workflow del proyecto
+- Troubleshooting y tips
+
+### CURRENT_STATUS.md
+Estado actual del proyecto y estructura de directorios.
 
 ## 🎯 Propósito
 
